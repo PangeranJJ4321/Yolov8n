@@ -1,0 +1,169 @@
+Cara pakai : 
+
+Train:
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\train_yolo.py --mode train --epochs 50 --imgsz 640 --batch 8 --name yolov8n-potholes
+
+Val:
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\train_yolo.py --mode val --split val --batch 8 --model runs/detect/yolov8n-potholes/weights/best.pt
+
+Test
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\train_yolo.py --mode val --split test --batch 8 --model runs/detect/yolov8n-potholes/weights/best.pt
+
+
+Predict pada data valid:
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\train_yolo.py --mode predict --model runs/detect/yolov8n-potholes/weights/best.pt --source G:/Yolov8n/datasets/potholes_raw/valid/images --conf 0.25
+
+Aku melakaukan fine tune model best.pt dari hasil sebelumnya
+python train_yolo.py --mode train --data G:/Yolov8n/datasets/potholes_raw/data.yaml --model runs/detect/yolov8n-potholes/weights/best.pt --epochs 50 --imgsz 640 --batch 8 --name yolov8n-potholes-ft
+
+Hasil Fine tune 50 dari best.pt dari train 1.
+
+Images:     133
+Instances:  330
+
+Precision (P):   0.793
+Recall (R):      0.679
+mAP@0.5:         0.775
+mAP@0.5-0.95:    0.502
+
+Precision 0.793 → cukup bagus, artinya prediksi pothole jarang false positive.
+Recall 0.679 → agak rendah, jadi masih ada beberapa lubang jalan yang lolos tidak terdeteksi.
+mAP@0.5 = 0.775 → ini angka yang lumayan oke untuk tahap fine-tune awal.
+mAP@0.5–0.95 = 0.502 → ini lebih ketat (karena berbagai IoU threshold), hasilnya setengah cukup solid.
+
+
+BAB Evaluasi Model Train dari yolov8n-potholes ke yolov8n-potholes_ft
+
+🧠 Analisis Hasil Training YOLOv8 (Fine-tuned)
+
+1️⃣ Grafik Training (results.png)
+1. Box Loss, Cls Loss, dan DFL Loss semuanya turun stabil sepanjang 50 epoch.
+→ Artinya model terus belajar dengan baik tanpa indikasi overfitting.
+
+2. Precision & Recall fluktuatif tapi tren akhirnya naik, sekitar P≈0.79 dan R≈0.68, sesuai dengan hasil evaluasi terminal kamu.
+
+3. mAP@0.5 meningkat stabil dari ~0.4 ke ≈0.78, sementara mAP@0.5–0.95 naik ke ≈0.50, menunjukkan model makin akurat di berbagai tingkat IoU.
+
+➡️ Kesimpulan:
+Model berhasil konvergen. Tidak ada tanda overfitting signifikan (loss val dan train menurun paralel).
+
+2️⃣ Confusion Matrix
+
+Dari confusion_matrix.png:
+
+1. Prediksi benar (“pothole→pothole”) = 246 instance
+
+2. False Negative (missed pothole, “pothole→background”) = 84 instance
+
+3. False Positive (“background→pothole”) = 120 instance
+
+Normalisasi (confusion_matrix_normalized.png) menunjukkan:
+
+1. Recall (sensitivitas): 0.75
+
+2. Precision terhadap background: sangat tinggi (1.00)
+
+➡️ Interpretasi:
+Model lebih sering melewatkan lubang kecil / samar (FN) dibanding salah deteksi. Artinya, model lebih konservatif — lebih suka “aman tidak deteksi” daripada “salah deteksi”.
+Hal ini umum pada dataset jalan dengan variasi pencahayaan tinggi.
+
+4️⃣ Hasil Akhir Evaluasi
+Metrik	        Nilai	Interpretasi
+Precision	    0.793	Akurasi tinggi saat model memprediksi lubang
+Recall	        0.679	Beberapa lubang masih belum terdeteksi
+mAP@0.5	        0.775	Akurasi deteksi bounding box baik
+mAP@0.5–0.95	0.502	Masih bisa ditingkatkan dengan augmentasi dan dataset lebih besar
+
+➡️ Kesimpulan akhir: Sudah Bagus Untuk Tahap Prototipe
+Model hasil fine-tuning menunjukkan peningkatan nyata dari model awal, dengan keseimbangan baik antara precision dan recall.
+Kinerja sudah cukup layak untuk tahap prototipe sistem deteksi lubang jalan real-time, apalagi jika nantinya dioptimalkan dengan TensorRT di Jetson atau GPU ringan.
+
+
+
+➡️ (Sekarang, 06/10/2025) Integrate DepthAnything V2 untuk menghasilkan per-frame depth
+
+1. Kalibrasi kamera (kritis untuk estimasi ukuran)
+2. Integrasi DepthAnything V2 untuk estimasi kedalaman
+3. Implementasi scale recovery untuk konversi ke metrik absolut
+4. Perhitungan diameter & kedalaman dari depth map
+
+💡 Tips untuk meningkatkan recall nanti (jika diperlukan):
+1. Augmentasi data lebih agresif (exposure, blur, noise)
+2. Tuning confidence threshold (coba 0.2-0.3)
+3. Data collection tambahan untuk lubang kecil/samar
+
+🚀 Mulai sekarang:
+Mari kita lanjut ke kalibrasi kamera dan integrasi depth estimation. Model deteksi sudah siap untuk tahap berikutnya!
+
+Kalibrasi kamera = proses untuk mencari tahu bagaimana kamera “melihat” dunia nyata.
+
+Tujuannya supaya komputer ngerti hubungan antara:
+
+1. Titik di dunia nyata (3D) 🧱
+2. dan posisinya di gambar (2D) 🖼️
+
+maksudnya?
+
+🧩 Bayangin kayak gini:
+
+Kamera itu kayak mata manusia, tapi tanpa kalibrasi dia cuma tahu “itu ada di gambar”.
+Dia nggak tahu berapa jauh atau seberapa besar sebenarnya benda itu.
+
+Misalnya:
+Kamu lihat dua koin di foto — satu besar tapi jauh, satu kecil tapi dekat.
+Tanpa tahu karakteristik lensa kameramu, komputer nggak bisa bedain mana yang sebenarnya lebih besar atau lebih jauh.
+
+⚙️ Nah, kalibrasi itu mencari dua hal utama:
+1️⃣ Parameter intrinsik (camera intrinsics)
+
+Ini menjelaskan sifat fisik kameramu, seperti:
+
+1. focal length (fx, fy) → seberapa kuat lensa memperbesar
+2. optical center (cx, cy) → titik tengah lensa
+3. distortion coefficients → efek lengkungan (barrel/pincushion)
+
+Disini kita akan simoan dalam JSON, misalnya :
+
+    {
+        "camera_matrix": [[1200.4, 0.0, 640.2],
+                            [0.0, 1198.7, 360.5],
+                            [0.0, 0.0, 1.0]],
+        "dist_coeffs": [-0.32, 0.15, 0.0, 0.0, 0.0]
+    }
+
+2️⃣ Parameter ekstrinsik (camera pose)
+
+Menjelaskan posisi dan arah kamera terhadap dunia nyata, biasanya digunakan saat multi-frame atau 3D reconstruction.
+Untuk DepthAnything kamu cukup butuh intrinsik dulu.
+
+📸 Bagaimana cara melakukan kalibrasi kamera
+
+1. Cetak pola checkerboard (papan catur hitam-putih).
+
+2. Ambil banyak foto (15–30) dari berbagai sudut & jarak.
+
+3. Jalankan skrip kalibrasi (OpenCV) → hasilnya camera_matrix dan distortion.
+
+4. Simpan ke file, misal camera_calib.json.
+
+Habis itu kamu bisa:
+
+1. Koreksi distorsi gambar.
+
+2. Ubah koordinat piksel menjadi jarak nyata (meter atau cm).
+
+💡 Analogi sederhana:
+
+Tanpa kalibrasi:
+Kamera cuma tahu “lubang ini lebih gelap dan lebih kecil di foto.”
+
+Dengan kalibrasi:
+Kamera tahu “lubang ini jaraknya 1,2 meter dari kamera, diameternya 30 cm, dan kedalamannya 5 cm.”
+
+📏 Jadi simpulannya:
+Tujuan	                                Butuh Kalibrasi?	       Kenapa
+Tampilkan warna depth (biru = dalam)	❌Tidak	                 Cukup relative depth
+Ukur kedalaman & diameter nyata (cm/m)	✅ Ya	                 Butuh tahu skala dunia nyata
+Mau integrasi DepthAnything + YOLO	    ✅ Ya	                 Supaya hasil depth punya arti fisik
+
+

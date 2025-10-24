@@ -1,0 +1,10 @@
+path: G:/Yolov8n/datasets/your_dataset
+train: images/train
+val: images/val
+
+# Replace class names below with your own
+names:
+  0: class0
+  1: class1
+
+

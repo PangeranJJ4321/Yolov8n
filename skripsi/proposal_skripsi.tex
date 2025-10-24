@@ -1,0 +1,603 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[bahasa]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Page setup
+\geometry{left=4cm,right=3cm,top=3cm,bottom=3cm}
+\onehalfspacing
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{SISTEM INFORMASI CERDAS UNTUK DETEKSI, ESTIMASI UKURAN, DAN PELAPORAN OTOMATIS JALAN BERLUBANG}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Title page
+\title{
+    \textbf{SISTEM INFORMASI CERDAS UNTUK DETEKSI, ESTIMASI UKURAN, DAN PELAPORAN OTOMATIS JALAN BERLUBANG SECARA REAL-TIME MENGGUNAKAN YOLOV8}
+}
+
+\author{
+    \textbf{Disusun oleh:}\\
+    Pangeran Juhrifar Jafar\\
+    NIM: H071231056
+}
+
+\date{}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    
+    % --- Logo ---
+    \includegraphics[width=3cm]{Logo-Resmi-Unhas-1.png}\\[1cm]
+    
+    % --- Universitas ---
+    {\large \textsc{Universitas Hasanuddin}}\\[0.2cm]
+    {\normalsize Fakultas Matematika dan Ilmu Pengetahuan Alam}\\[0.2cm]
+    {\normalsize Program Studi Sistem Informasi}\\[2cm]
+    
+    % --- Judul ---
+    {\LARGE \bfseries
+    Sistem Informasi Cerdas untuk Deteksi, Estimasi Ukuran,\\
+    dan Pelaporan Otomatis Jalan Berlubang secara Real-Time\\
+    Menggunakan YOLOv8
+    \par}
+    
+    \vspace{2.5cm}
+    
+    % --- Penulis ---
+    {\large \textbf{Disusun oleh}}\\[0.5cm]
+    {\Large \textbf{Pangeran Juhrifar Jafar}}\\[0.3cm]
+    {\normalsize NIM: H071231056}\\[3cm]
+    
+    % --- Tahun ---
+    {\large \textbf{2025}}
+\end{titlepage}
+
+
+
+
+
+
+% Table of contents
+\tableofcontents
+\newpage
+
+% BAB I - PENDAHULUAN
+\chapter{PENDAHULUAN}
+
+\section{Latar Belakang}
+
+Infrastruktur jalan merupakan fondasi fundamental bagi pembangunan ekonomi dan sosial suatu negara. Jalan yang berkualitas baik tidak hanya memfasilitasi mobilitas masyarakat, tetapi juga mendukung pertumbuhan ekonomi, aksesibilitas layanan publik, dan konektivitas antarwilayah. Dalam konteks pembangunan berkelanjutan, infrastruktur jalan yang memadai menjadi indikator penting kemajuan suatu bangsa dan kesejahteraan masyarakatnya.
+
+Indonesia sebagai negara kepulauan dengan geografi yang kompleks menghadapi tantangan besar dalam pemeliharaan infrastruktur jalan. Data Kementerian Pekerjaan Umum dan Perumahan Rakyat menunjukkan bahwa dari total 496.000 km jalan di Indonesia, sekitar 30\% berada dalam kondisi rusak ringan hingga berat. Masalah jalan berlubang (\textit{potholes}) menjadi fenomena yang sangat umum, terutama di daerah dengan curah hujan tinggi dan beban lalu lintas yang berat. Kondisi ini tidak hanya mengganggu kenyamanan berkendara, tetapi juga menimbulkan risiko keselamatan yang serius dan kerugian ekonomi yang signifikan.
+
+Perkembangan teknologi informasi dan komunikasi telah membuka peluang baru dalam mengatasi permasalahan infrastruktur jalan. Teknologi \textit{Computer Vision} dan \textit{Artificial Intelligence} (AI) menawarkan solusi inovatif untuk deteksi otomatis kerusakan jalan secara real-time. Kemajuan dalam bidang \textit{Deep Learning}, khususnya \textit{Convolutional Neural Networks} (CNN), telah merevolusi kemampuan sistem untuk mengenali dan menganalisis kondisi jalan secara akurat dan efisien.
+
+Beberapa negara maju telah mengimplementasikan sistem deteksi kerusakan jalan berbasis AI dengan hasil yang menggembirakan. Singapura menggunakan sistem \textit{Smart Nation} yang mengintegrasikan sensor dan kamera untuk monitoring infrastruktur secara real-time. Jepang mengembangkan sistem \textit{Road Damage Detection} menggunakan \textit{Machine Learning} untuk mengidentifikasi berbagai jenis kerusakan jalan. Di Indonesia, beberapa kota besar seperti Jakarta dan Surabaya telah mulai mengadopsi teknologi \textit{smart city}, namun implementasi sistem deteksi kerusakan jalan yang komprehensif masih terbatas dan belum terintegrasi dengan baik.
+
+Metode konvensional deteksi kerusakan jalan di Indonesia masih mengandalkan laporan manual dari masyarakat dan inspeksi lapangan oleh petugas, yang memiliki keterbatasan dalam hal kecepatan, akurasi, dan cakupan. Proses ini bersifat reaktif, subjektif, dan seringkali tidak tepat waktu. Terdapat gap yang signifikan antara kebutuhan pemeliharaan jalan yang proaktif dengan kemampuan deteksi yang tersedia. Peluang besar terbuka untuk mengembangkan sistem otomatis yang dapat mendeteksi, mengukur, dan melaporkan kerusakan jalan secara real-time dengan akurasi tinggi.
+
+Sistem informasi memainkan peran krusial dalam mengintegrasikan teknologi deteksi kerusakan jalan dengan proses pengambilan keputusan yang efektif. Melalui \textit{Application Programming Interface} (API) dan \textit{dashboard} interaktif, data hasil deteksi dapat diolah, dianalisis, dan disajikan kepada stakeholder dalam format yang mudah dipahami. Sistem informasi yang terintegrasi memungkinkan otomasi proses pelaporan, prioritisasi perbaikan, dan monitoring progress secara real-time, sehingga mentransformasi manajemen infrastruktur jalan dari pendekatan reaktif menjadi proaktif.
+
+Penelitian sebelumnya telah menunjukkan potensi besar teknologi \textit{Deep Learning} dalam deteksi kerusakan jalan. Gorro et al. (2024) berhasil mengimplementasikan YOLOv8 dengan augmentasi data untuk deteksi lubang jalan dengan akurasi tinggi. Wang et al. (2025) mengembangkan sistem terintegrasi yang menggabungkan estimasi kedalaman monokular dengan \textit{temporal filtering} untuk pengukuran ukuran kerusakan yang akurat. Hoseini et al. (2024) mendemonstrasikan efektivitas arsitektur \textit{deep learning} untuk deteksi objek real-time pada kendaraan otonom. Penelitian-penelitian ini memberikan fondasi teoretis yang kuat untuk pengembangan sistem yang lebih komprehensif.
+
+Berdasarkan analisis gap dan peluang yang ada, penelitian ini bertujuan untuk mengembangkan sistem informasi cerdas yang mengintegrasikan teknologi YOLOv8 untuk deteksi jalan berlubang secara real-time, estimasi ukuran kerusakan menggunakan \textit{depth estimation} monokular, dan sistem pelaporan otomatis melalui REST API. Sistem ini diharapkan dapat mengatasi keterbatasan metode konvensional dengan menyediakan solusi yang akurat, efisien, dan dapat diimplementasikan secara praktis untuk mendukung program \textit{smart city} dan pembangunan infrastruktur berkelanjutan di Indonesia.
+
+\section{Identifikasi Masalah}
+
+Berdasarkan analisis latar belakang yang telah diuraikan, dapat diidentifikasi beberapa permasalahan mendasar yang menjadi fokus penelitian ini:
+
+\textbf{Permasalahan Utama:}
+
+\begin{enumerate}
+    \item \textbf{Keterbatasan Metode Konvensional:} Sistem deteksi kerusakan jalan yang ada saat ini masih mengandalkan laporan manual dan inspeksi lapangan, yang memiliki keterbatasan dalam hal kecepatan, akurasi, dan cakupan geografis.
+    
+    \item \textbf{Tantangan Teknis Depth Estimation:} Pengukuran dimensi kerusakan jalan (diameter dan kedalaman) dari citra monokular menghadapi tantangan skala absolut, di mana model deep learning umumnya hanya menghasilkan estimasi kedalaman relatif.
+    
+    \item \textbf{Integrasi Sistem yang Terfragmentasi:} Belum ada sistem terintegrasi yang dapat menggabungkan deteksi, pengukuran, dan pelaporan kerusakan jalan dalam satu platform yang efisien dan dapat diakses oleh berbagai stakeholder.
+    
+    \item \textbf{Kebutuhan Real-time Processing:} Aplikasi praktis memerlukan sistem yang dapat beroperasi secara real-time dengan latensi rendah, terutama untuk implementasi pada kendaraan yang bergerak.
+    
+    \item \textbf{Gap Implementasi di Indonesia:} Meskipun teknologi sudah tersedia, implementasi sistem deteksi kerusakan jalan berbasis AI di Indonesia masih terbatas dan belum terintegrasi dengan sistem manajemen infrastruktur yang ada.
+\end{enumerate}
+
+\section{Rumusan Masalah}
+
+Berdasarkan identifikasi masalah yang telah diuraikan, rumusan masalah dalam penelitian ini adalah:
+
+\begin{enumerate}
+    \item Bagaimana merancang dan mengimplementasikan model \textbf{YOLOv8} untuk dapat mendeteksi jalan berlubang secara akurat dan \textit{real-time} dari input video kamera dalam berbagai kondisi jalan?
+    
+    \item Bagaimana mengembangkan metode untuk mengestimasi \textbf{diameter (2D)} dan \textbf{kedalaman (3D)} lubang secara akurat dan simultan dari citra kamera monokular dengan mengatasi tantangan skala absolut pada depth estimation?
+    
+    \item Bagaimana merancang arsitektur sistem yang dapat mengirimkan data hasil deteksi (koordinat GPS, ukuran, \textit{timestamp}) secara otomatis melalui \textbf{REST API} ke sebuah \textit{dashboard} pemantauan?
+\end{enumerate}
+
+\section{Tujuan Penelitian}
+
+Tujuan dari penelitian ini adalah:
+
+\begin{enumerate}
+    \item Mengimplementasikan sistem deteksi jalan berlubang secara \textit{real-time} menggunakan model YOLOv8 (varian ringan seperti YOLOv8n atau YOLOv8s untuk latensi rendah).
+    
+    \item Mengembangkan metode terintegrasi untuk mengestimasi \textbf{diameter} dan \textbf{kedalaman} lubang secara simultan menggunakan estimasi kedalaman monokular berbasis deep learning (DepthAnything V2) dengan penerapan \textbf{scale recovery} untuk akurasi metrik absolut.
+    
+    \item Mengimplementasikan sistem pelacakan objek (BoT-SORT) dan pemfilteran temporal (Kalman Filter) untuk meningkatkan stabilitas dan akurasi pengukuran.
+    
+    \item Menerapkan teknik \textbf{robust statistics} (median, percentile, outlier removal) untuk mengatasi noise pada depth map.
+    
+    \item Merancang dan membuat prototipe \textbf{REST API} untuk mengirimkan data hasil deteksi ke sebuah \textit{dashboard} simulasi pihak berwenang.
+\end{enumerate}
+
+\section{Manfaat Penelitian}
+
+Penelitian ini diharapkan memberikan manfaat:
+
+\begin{enumerate}
+    \item \textbf{Bagi Pemerintah/Otoritas Jalan:} Menyediakan alat bantu pengambilan keputusan yang berbasis data \textit{real-time} untuk pemeliharaan jalan yang lebih efisien, proaktif, dan terukur dengan klasifikasi severity otomatis.
+    
+    \item \textbf{Bagi Masyarakat:} Meningkatkan keselamatan dan kenyamanan berkendara dengan mempercepat proses identifikasi dan perbaikan jalan yang rusak.
+    
+    \item \textbf{Bagi Akademisi:} Memberikan kontribusi berupa prototipe sistem \textit{end-to-end} dengan analisis mendalam tentang tantangan implementasi depth estimation monokular, solusi scale recovery, dan best practices untuk aplikasi real-world.
+\end{enumerate}
+
+\section{Signifikansi Penelitian}
+
+Penelitian ini memiliki signifikansi yang tinggi dalam beberapa aspek:
+
+\textbf{Signifikansi Teoritis:}
+\begin{itemize}
+    \item Memberikan kontribusi dalam pengembangan metodologi depth estimation monokular untuk aplikasi infrastruktur jalan
+    \item Mengembangkan framework terintegrasi yang menggabungkan computer vision, deep learning, dan sistem informasi
+    \item Menyediakan solusi untuk tantangan scale recovery dalam depth estimation monokular
+\end{itemize}
+
+\textbf{Signifikansi Praktis:}
+\begin{itemize}
+    \item Menyediakan solusi teknologi yang dapat diimplementasikan secara langsung oleh otoritas jalan
+    \item Mengurangi biaya operasional dan meningkatkan efisiensi pemeliharaan infrastruktur
+    \item Meningkatkan kualitas layanan publik melalui sistem monitoring yang lebih baik
+\end{itemize}
+
+\textbf{Signifikansi Sosial:}
+\begin{itemize}
+    \item Meningkatkan keselamatan berkendara dan mengurangi risiko kecelakaan
+    \item Meningkatkan kualitas hidup masyarakat melalui infrastruktur jalan yang lebih baik
+    \item Mendukung program smart city dan pembangunan berkelanjutan
+\end{itemize}
+
+\textbf{Signifikansi Ekonomi:}
+\begin{itemize}
+    \item Mengurangi biaya perawatan kendaraan akibat kerusakan jalan
+    \item Meningkatkan efisiensi logistik dan transportasi
+    \item Menciptakan peluang bisnis baru dalam bidang teknologi infrastruktur
+\end{itemize}
+
+\section{Batasan Masalah}
+
+Penelitian ini dibatasi pada:
+
+\begin{enumerate}
+    \item \textbf{Model yang Digunakan:} Hanya menggunakan YOLOv8n (nano version) untuk deteksi objek
+    \item \textbf{Jenis Kerusakan:} Fokus pada deteksi lubang jalan (potholes) saja, tidak termasuk jenis kerusakan jalan lainnya
+    \item \textbf{Kondisi Lingkungan:} Evaluasi dilakukan pada kondisi normal (siang hari, cuaca cerah)
+    \item \textbf{Platform Implementasi:} Sistem diimplementasikan pada platform desktop/laptop
+    \item \textbf{Area Geografis:} Testing dilakukan di area terbatas dengan karakteristik jalan yang spesifik
+    \item \textbf{Kamera:} Menggunakan kamera monokular standar, bukan kamera stereo atau multi-view
+    \item \textbf{Dataset:} Menggunakan dataset yang tersedia secara publik dengan anotasi terbatas
+\end{enumerate}
+
+\section{Landasan Teori}
+
+Landasan teori dalam penelitian ini mencakup konsep-konsep fundamental yang menjadi dasar pengembangan sistem deteksi, estimasi ukuran, dan pelaporan otomatis jalan berlubang. Teori-teori ini meliputi:
+
+\subsection{Computer Vision dan Deep Learning}
+
+Computer vision adalah bidang ilmu yang mempelajari bagaimana komputer dapat menafsirkan dan memahami informasi visual dari dunia nyata [1]. Bidang ini mencakup pengembangan algoritma dan sistem yang memungkinkan mesin untuk mengekstrak, menganalisis, dan memahami informasi bermakna dari gambar atau video digital. Computer vision memiliki aplikasi luas dalam berbagai domain seperti pengenalan objek, segmentasi citra, deteksi gerakan, dan analisis medis.
+
+Deep learning, khususnya Convolutional Neural Networks (CNN), telah merevolusi computer vision dengan kemampuannya mempelajari fitur-fitur kompleks secara otomatis dari data mentah [2]. CNN meniru cara kerja sistem visual manusia dengan menggunakan lapisan-lapisan konvolusi yang dapat mendeteksi pola lokal seperti tepi, tekstur, dan bentuk. Arsitektur ini memungkinkan model untuk mempelajari representasi hierarkis dari fitur low-level hingga high-level secara end-to-end, mengatasi keterbatasan metode tradisional yang mengandalkan hand-crafted features.
+
+\subsection{Object Detection}
+
+Object detection adalah teknik computer vision yang dapat melokalisasi dan mengklasifikasi objek dalam citra secara simultan [3]. Berbeda dengan klasifikasi yang hanya mengidentifikasi objek dalam gambar, object detection memberikan informasi spasial yang tepat tentang lokasi objek melalui bounding box. Teknik ini melibatkan dua tugas utama: (1) lokalisasi objek dengan prediksi koordinat bounding box, dan (2) klasifikasi objek dengan prediksi class label.
+
+YOLO (You Only Look Once) merupakan salah satu algoritma object detection yang terkenal karena kecepatan dan akurasinya dalam aplikasi real-time [4]. YOLO memperkenalkan pendekatan revolusioner dengan memproses seluruh citra dalam satu kali forward pass, berbeda dengan metode two-stage yang memerlukan proposal generation terlebih dahulu. Arsitektur YOLO menggunakan grid-based approach dimana setiap grid cell bertanggung jawab untuk mendeteksi objek yang center-nya berada di dalam cell tersebut.
+
+\subsection{Monocular Depth Estimation}
+
+Monocular depth estimation adalah teknik untuk memperkirakan kedalaman objek dari citra tunggal tanpa menggunakan kamera stereo (Eigen \& Fergus, 2015). Teknik ini mengatasi keterbatasan kamera stereo yang memerlukan dua kamera yang terkalibrasi dengan baik dan memiliki baseline yang cukup. Monocular depth estimation sangat berguna untuk aplikasi mobile dan embedded systems dimana space dan power constraints menjadi pertimbangan penting.
+
+Teknik ini menggunakan model deep learning untuk menghasilkan depth map yang menunjukkan jarak relatif setiap piksel dari kamera [5]. Model dilatih menggunakan dataset yang berisi pasangan citra RGB dan ground truth depth map. Selama training, model mempelajari mapping dari fitur visual (warna, tekstur, perspektif) ke informasi kedalaman. Namun, estimasi kedalaman monokular hanya menghasilkan depth relatif, sehingga diperlukan scale recovery untuk konversi ke satuan metrik absolut.
+
+\subsection{DepthAnything V2}
+
+DepthAnything V2 adalah model state-of-the-art untuk monocular depth estimation yang menggunakan arsitektur Dense Prediction Transformer (DPT) [18]. Model ini merupakan evolusi dari DepthAnything yang dirancang khusus untuk menghasilkan estimasi kedalaman yang akurat dan robust dari citra monokular. DepthAnything V2 mengatasi keterbatasan model depth estimation konvensional dengan menggunakan transformer-based architecture yang dapat menangkap long-range dependencies dan contextual information dengan lebih baik.
+
+Arsitektur DepthAnything V2 terdiri dari beberapa komponen utama: (1) Vision Transformer (ViT) backbone untuk ekstraksi fitur multi-scale, (2) Dense Prediction Head untuk menghasilkan depth map dengan resolusi tinggi, (3) Multi-scale feature fusion untuk menggabungkan informasi dari berbagai level abstraksi, dan (4) Self-supervised training strategy yang memungkinkan model belajar dari data tanpa ground truth depth yang akurat. Model ini dilatih menggunakan large-scale dataset yang mencakup berbagai domain dan kondisi pencahayaan untuk memastikan generalisasi yang baik.
+
+Keunggulan DepthAnything V2 dalam konteks deteksi potholes meliputi: (1) Kemampuan menghasilkan depth map dengan detail yang tinggi untuk objek kecil seperti lubang jalan, (2) Robust terhadap variasi pencahayaan dan kondisi cuaca yang sering ditemui dalam aplikasi real-world, (3) Efisiensi komputasi yang baik untuk aplikasi real-time, dan (4) Kemampuan generalisasi yang tinggi untuk berbagai jenis permukaan jalan dan kondisi lingkungan. Model ini sangat cocok untuk integrasi dengan sistem deteksi objek seperti YOLOv8 karena dapat berjalan secara parallel dan menghasilkan output yang konsisten.
+
+\subsection{Scale Recovery}
+
+Scale recovery adalah proses konversi estimasi kedalaman relatif menjadi kedalaman absolut dalam satuan metrik [6]. Proses ini merupakan tantangan utama dalam monocular depth estimation karena model hanya dapat memprediksi depth relatif tanpa informasi skala absolut. Scale recovery memerlukan referensi ukuran yang diketahui, seperti tinggi mounting kamera atau objek dengan dimensi standar [7].
+
+Beberapa pendekatan scale recovery yang umum digunakan meliputi: (1) Height-based scale recovery menggunakan tinggi kamera dari permukaan tanah, (2) Object-based scale recovery menggunakan objek dengan ukuran standar seperti manusia atau kendaraan, (3) Multi-frame consistency dengan asumsi gerakan kamera yang smooth, dan (4) Sensor fusion dengan data dari IMU atau GPS. Dalam konteks deteksi potholes, scale recovery memungkinkan konversi pixel dimensions menjadi ukuran fisik yang akurat dalam satuan centimeter atau meter.
+
+\subsection{Object Tracking}
+
+Object tracking adalah proses melacak objek yang sama di beberapa frame video secara berurutan [8]. Proses ini melibatkan assignment ID yang konsisten untuk objek yang sama sepanjang sequence video, mengatasi masalah occlusion, illumination changes, dan pose variations. Object tracking sangat penting untuk aplikasi real-time karena memungkinkan temporal consistency dan mengurangi false positive deteksi.
+
+BoT-SORT (ByteTrack + ReID) adalah algoritma tracking yang menggabungkan motion prediction dengan appearance features untuk tracking yang robust [9]. Algoritma ini menggunakan ByteTrack sebagai base tracker yang mengandalkan motion prediction, kemudian menambahkan re-identification features untuk mengatasi temporary occlusion. BoT-SORT mampu menangani complex scenarios seperti multiple object tracking, occlusion handling, dan identity preservation across frames.
+
+\subsection{Temporal Filtering}
+
+Temporal filtering menggunakan informasi dari frame-frame sebelumnya untuk menghasilkan estimasi yang lebih stabil [10]. Teknik ini memanfaatkan temporal correlation dalam video sequence untuk menghaluskan noise dan meningkatkan akurasi estimasi. Temporal filtering sangat penting untuk aplikasi real-time karena dapat mengurangi jitter dan menghasilkan output yang lebih smooth.
+
+Kalman Filter adalah salah satu teknik temporal filtering yang populer untuk menghaluskan noise pada pengukuran berurutan (Welch \& Bishop, 2006). Filter ini menggunakan model state space untuk memprediksi state objek (posisi, kecepatan) berdasarkan pengukuran sebelumnya, kemudian mengkoreksi prediksi dengan pengukuran baru. Kalman Filter optimal untuk sistem linear dengan Gaussian noise, dan dapat diadaptasi untuk sistem non-linear menggunakan Extended Kalman Filter atau Unscented Kalman Filter.
+
+\subsection{REST API}
+
+REST API (Representational State Transfer Application Programming Interface) adalah arsitektur web service yang menggunakan HTTP protocol untuk komunikasi antar sistem [11]. REST mengikuti prinsip-prinsip stateless, cacheable, dan uniform interface yang membuatnya scalable dan mudah diimplementasikan. API ini memungkinkan pertukaran data dalam format JSON secara efisien dan scalable [12].
+
+REST API menggunakan HTTP methods (GET, POST, PUT, DELETE) untuk operasi CRUD (Create, Read, Update, Delete) pada resources. Setiap resource memiliki unique URI dan dapat direpresentasikan dalam berbagai format seperti JSON, XML, atau HTML. REST API sangat cocok untuk aplikasi web dan mobile karena menggunakan standard HTTP protocol yang didukung oleh semua platform modern.
+
+\subsection{Real-time Processing}
+
+Real-time processing adalah kemampuan sistem untuk memproses data input dan menghasilkan output dengan latensi rendah (biasanya < 100ms) [13]. Sistem real-time harus memenuhi deadline constraints untuk memastikan respons yang tepat waktu. Kemampuan ini penting untuk aplikasi interaktif dan sistem yang memerlukan respons cepat [14].
+
+Dalam konteks computer vision, real-time processing melibatkan optimasi algoritma untuk mencapai throughput yang tinggi dengan latensi yang rendah. Teknik optimasi meliputi model compression, quantization, pruning, dan hardware acceleration menggunakan GPU atau specialized chips. Real-time processing juga memerlukan efficient data structures dan algorithms yang dapat memproses data streaming dengan minimal buffering.
+
+\subsection{Robust Statistics}
+
+Robust statistics adalah teknik statistik yang tahan terhadap outlier dan noise [15]. Teknik ini menggunakan estimators yang tidak mudah terpengaruh oleh data yang tidak normal atau mengandung error. Robust statistics sangat penting untuk aplikasi real-world dimana data sering mengandung noise, missing values, atau outliers.
+
+Teknik seperti median, percentile, dan IQR (Interquartile Range) method digunakan untuk menghasilkan estimasi yang lebih stabil (Rousseeuw \& Leroy, 2003). Median lebih robust daripada mean karena tidak terpengaruh oleh extreme values. Percentile methods seperti 25th dan 75th percentile dapat digunakan untuk outlier detection. IQR method menggunakan interquartile range untuk mengidentifikasi dan menghilangkan outliers secara otomatis.
+
+\subsection{Edge Computing}
+
+Edge computing adalah paradigma komputasi yang memproses data di dekat sumber data, mengurangi latensi dan bandwidth yang diperlukan untuk komunikasi dengan cloud [16]. Paradigma ini penting untuk aplikasi real-time pada perangkat dengan sumber daya terbatas [17]. Edge computing memungkinkan processing lokal tanpa mengirim data ke cloud, sehingga mengurangi latency dan meningkatkan privacy.
+
+Dalam konteks computer vision, edge computing memerlukan model yang dioptimasi untuk hardware dengan resources terbatas seperti mobile devices, embedded systems, atau IoT devices. Teknik optimasi meliputi model quantization, pruning, knowledge distillation, dan efficient architectures seperti MobileNet atau EfficientNet. Edge computing juga memerlukan efficient data processing pipelines yang dapat berjalan pada CPU atau specialized AI chips.
+
+% BAB II - METODE PENELITIAN
+\chapter{METODE PENELITIAN}
+
+\section{Jenis Penelitian}
+
+Penelitian ini termasuk dalam bidang Rekayasa Sistem Informasi dan Komputer (RSIC) dengan pendekatan Rancang Bangun, karena berfokus pada proses perancangan dan pengembangan sistem deteksi lubang jalan yang mampu mengukur diameter serta kedalaman secara otomatis dan mengirimkan hasilnya ke dashboard pemerintah secara real-time melalui API. Metode penelitian yang digunakan adalah Design Science Research (DSR), yang menekankan pada penciptaan dan evaluasi artefak sebagai solusi atas permasalahan yang diidentifikasi. Melalui pendekatan DSR, penelitian ini mencakup tahapan identifikasi masalah, perancangan solusi, pembangunan artefak sistem, serta evaluasi performa sistem untuk memastikan bahwa solusi yang dihasilkan memiliki nilai guna dan dapat diimplementasikan secara efektif dalam konteks nyata.
+
+Penelitian ini menggunakan metode penelitian \textbf{eksperimental} dengan pendekatan \textbf{quantitative}. Penelitian eksperimental dipilih karena bertujuan untuk menguji efektivitas model YOLOv8 dalam mendeteksi lubang di jalan melalui eksperimen yang terkontrol.
+
+\textbf{Desain Penelitian:}
+\begin{itemize}
+    \item \textbf{Pre-experimental design} dengan one-group pretest-posttest design
+    \item \textbf{Comparative study} untuk membandingkan performa YOLOv8 dengan model lain
+    \item \textbf{Design Science Research (DSR)} untuk pengembangan artefak sistem
+\end{itemize}
+
+\section{Objek Penelitian}
+
+\subsection{Objek Penelitian}
+
+Objek penelitian dalam studi ini meliputi komponen-komponen utama yang akan dikembangkan dan dievaluasi untuk membangun sistem deteksi jalan berlubang yang terintegrasi. Objek penelitian ini dipilih berdasarkan kebutuhan fungsional sistem dan ketersediaan teknologi yang mendukung implementasi real-time.
+
+\begin{itemize}
+    \item \textbf{Model YOLOv8n (You Only Look Once version 8 nano):} Model deep learning untuk deteksi objek yang dioptimasi untuk performa real-time dengan akurasi tinggi
+    \item \textbf{Dataset gambar lubang di jalan (potholes dataset):} Kumpulan data citra yang telah dilabeli untuk training dan validasi model
+    \item \textbf{Video real-time untuk testing:} Input video streaming untuk evaluasi performa sistem dalam kondisi operasional
+    \item \textbf{Sistem depth estimation:} Model untuk mengestimasi kedalaman lubang dari citra monokular
+    \item \textbf{REST API dan Dashboard:} Interface komunikasi dan visualisasi data hasil deteksi
+\end{itemize}
+
+\subsection{Variabel Penelitian}
+
+Variabel penelitian dalam studi ini diklasifikasikan berdasarkan peran dan pengaruhnya terhadap hasil penelitian. Klasifikasi ini penting untuk memahami hubungan kausalitas dan mengontrol faktor-faktor yang dapat mempengaruhi validitas hasil penelitian.
+
+\subsubsection{Variabel Bebas (Independent Variable)}
+
+Variabel bebas adalah faktor-faktor yang dimanipulasi atau dikontrol dalam penelitian untuk melihat pengaruhnya terhadap variabel terikat.
+
+\begin{itemize}
+    \item \textbf{Model YOLOv8n:} Arsitektur dan konfigurasi model deep learning yang digunakan
+    \item \textbf{Parameter training:} Epochs, batch size, learning rate, dan hyperparameter lainnya
+    \item \textbf{Preprocessing data:} Teknik augmentasi, normalisasi, dan transformasi data
+    \item \textbf{Depth estimation method:} Metode dan parameter untuk estimasi kedalaman
+    \item \textbf{API configuration:} Konfigurasi endpoint, format data, dan protokol komunikasi
+\end{itemize}
+
+\subsubsection{Variabel Terikat (Dependent Variable)}
+
+Variabel terikat adalah hasil atau output yang diukur untuk mengevaluasi efektivitas sistem yang dikembangkan.
+
+\begin{itemize}
+    \item \textbf{Akurasi deteksi (mAP):} Mean Average Precision sebagai indikator utama performa deteksi
+    \item \textbf{Kecepatan inferensi (FPS):} Frames Per Second untuk mengukur kemampuan real-time processing
+    \item \textbf{Precision dan Recall:} Metrik detail untuk evaluasi kualitas deteksi
+    \item \textbf{Akurasi estimasi ukuran:} Presisi pengukuran diameter dan kedalaman lubang
+    \item \textbf{Latency sistem:} Waktu respons total dari input hingga output
+    \item \textbf{Throughput API:} Kemampuan sistem dalam menangani request per detik
+\end{itemize}
+
+\subsubsection{Variabel Kontrol}
+
+Variabel kontrol adalah faktor-faktor yang dijaga konstan untuk memastikan validitas eksperimen dan mengurangi noise dalam pengukuran.
+
+\begin{itemize}
+    \item \textbf{Hardware yang digunakan:} Spesifikasi CPU, GPU, RAM, dan storage
+    \item \textbf{Format input data:} Resolusi, format file, dan encoding video
+    \item \textbf{Threshold confidence:} Nilai ambang batas untuk filtering deteksi
+    \item \textbf{Kondisi lingkungan:} Pencahayaan, cuaca, dan kondisi jalan
+    \item \textbf{Platform implementasi:} Sistem operasi dan environment runtime
+\end{itemize}
+
+\section{Teknik Pengumpulan Data}
+
+Teknik pengumpulan data dalam penelitian ini mengikuti metodologi Design Science Research (DSR) yang terstruktur dalam beberapa tahapan sistematis. Setiap tahapan memiliki tujuan spesifik dan menghasilkan output yang menjadi input untuk tahapan selanjutnya.
+
+\subsection{Tahapan Design Science Research (DSR)}
+
+\subsubsection{1. Identifikasi Masalah}
+
+Tahap ini bertujuan untuk memahami secara mendalam permasalahan yang akan diselesaikan dan mengidentifikasi gap yang ada dalam solusi yang tersedia saat ini.
+
+\begin{itemize}
+    \item \textbf{Analisis gap:} Menganalisis perbedaan antara kebutuhan deteksi kerusakan jalan dengan solusi yang tersedia
+    \item \textbf{Identifikasi tantangan teknis:} Mengidentifikasi tantangan khusus dalam depth estimation monokular
+    \item \textbf{Evaluasi keterbatasan sistem:} Menilai keterbatasan sistem konvensional yang ada
+    \item \textbf{Stakeholder analysis:} Menganalisis kebutuhan pengguna akhir dan stakeholder
+\end{itemize}
+
+\subsubsection{2. Perancangan Solusi}
+
+Tahap ini mengembangkan konsep dan arsitektur sistem yang akan mengatasi permasalahan yang telah diidentifikasi.
+
+\begin{itemize}
+    \item \textbf{Arsitektur sistem terintegrasi:} Merancang integrasi YOLOv8 + Depth Estimation + API
+    \item \textbf{Desain REST API:} Merancang interface komunikasi data yang efisien
+    \item \textbf{Rancangan dashboard:} Merancang interface monitoring dan visualisasi
+    \item \textbf{Workflow design:} Merancang alur kerja sistem dari input hingga output
+\end{itemize}
+
+\subsubsection{3. Pembangunan Artefak}
+
+Tahap implementasi dimana solusi yang telah dirancang diwujudkan dalam bentuk sistem yang dapat dioperasikan.
+
+\begin{itemize}
+    \item \textbf{Implementasi model YOLOv8:} Pengembangan model deteksi potholes
+    \item \textbf{Pengembangan depth estimation:} Implementasi sistem estimasi kedalaman
+    \item \textbf{Pembuatan REST API:} Pengembangan interface komunikasi
+    \item \textbf{Pengembangan dashboard:} Pembuatan interface monitoring
+\end{itemize}
+
+\subsubsection{4. Evaluasi Sistem}
+
+Tahap evaluasi untuk memastikan sistem yang dibangun memenuhi kebutuhan dan performa yang diharapkan.
+
+\begin{itemize}
+    \item \textbf{Testing performa model:} Evaluasi akurasi dengan berbagai metrik
+    \item \textbf{Evaluasi real-time processing:} Pengujian kecepatan dan latensi
+    \item \textbf{Validasi integrasi:} Pengujian integrasi antar komponen sistem
+    \item \textbf{User acceptance testing:} Pengujian dengan pengguna akhir
+\end{itemize}
+
+\subsection{Pengumpulan Data Teknis}
+
+\subsubsection{5. Dataset Collection}
+
+Pengumpulan dan persiapan data yang diperlukan untuk training dan validasi model.
+
+\begin{itemize}
+    \item \textbf{Source dataset:} Menggunakan dataset potholes yang tersedia secara publik
+    \item \textbf{Data splitting:} Pembagian dataset: training (70\%), validation (20\%), testing (10\%)
+    \item \textbf{Data augmentation:} Teknik augmentasi untuk meningkatkan variasi data
+    \item \textbf{Quality control:} Pemeriksaan kualitas dan konsistensi data
+\end{itemize}
+
+\subsubsection{6. Data Preprocessing}
+
+Persiapan data untuk proses training dan inference yang optimal.
+
+\begin{itemize}
+    \item \textbf{Image resizing:} Resize gambar ke ukuran standar (640x640)
+    \item \textbf{Normalisasi:} Normalisasi pixel values untuk stabilitas training
+    \item \textbf{Label conversion:} Konversi format label ke YOLO format
+    \item \textbf{Data validation:} Validasi format dan integritas data
+\end{itemize}
+
+\subsubsection{7. Model Training}
+
+Proses pelatihan model dengan konfigurasi yang telah ditentukan.
+
+\begin{itemize}
+    \item \textbf{Transfer learning:} Menggunakan pre-trained YOLOv8n weights
+    \item \textbf{Fine-tuning:} Penyesuaian model pada dataset potholes
+    \item \textbf{Hyperparameter tuning:} Optimasi parameter untuk performa optimal
+    \item \textbf{Model validation:} Validasi model dengan validation set
+\end{itemize}
+
+\subsubsection{8. Evaluation Data}
+
+Pengumpulan data untuk evaluasi final dan benchmarking sistem.
+
+\begin{itemize}
+    \item \textbf{Test set:} Data testing untuk evaluasi final performa
+    \item \textbf{Real-time video:} Video streaming untuk testing performa operasional
+    \item \textbf{Benchmark data:} Data untuk perbandingan dengan model lain
+    \item \textbf{Performance metrics:} Pengumpulan metrik performa komprehensif
+\end{itemize}
+
+\section{Teknik Analisis Data}
+
+Teknik analisis data dalam penelitian ini dirancang untuk memberikan evaluasi komprehensif terhadap performa sistem yang dikembangkan. Analisis ini mencakup aspek kuantitatif dan kualitatif untuk memastikan sistem memenuhi standar yang ditetapkan.
+
+\subsection{Metrik Evaluasi}
+
+Metrik evaluasi digunakan untuk mengukur performa sistem secara objektif dan dapat dibandingkan dengan standar industri.
+
+\subsubsection{Metrik Deteksi Objek}
+
+\begin{itemize}
+    \item \textbf{mAP (mean Average Precision):} Metrik utama untuk mengukur akurasi keseluruhan model deteksi objek dengan berbagai threshold IoU
+    \item \textbf{Precision:} Proporsi deteksi yang benar dari total deteksi yang dilakukan
+    \item \textbf{Recall:} Proporsi objek yang berhasil dideteksi dari total objek yang ada
+    \item \textbf{F1-Score:} Harmonic mean dari precision dan recall untuk mengukur keseimbangan keduanya
+    \item \textbf{IoU (Intersection over Union):} Metrik untuk mengukur akurasi lokalisasi bounding box
+\end{itemize}
+
+\subsubsection{Metrik Performa Real-time}
+
+\begin{itemize}
+    \item \textbf{FPS (Frames Per Second):} Kecepatan inferensi untuk mengukur kemampuan real-time processing
+    \item \textbf{Latency:} Waktu respons total dari input hingga output sistem
+    \item \textbf{Throughput:} Jumlah frame yang dapat diproses per detik
+    \item \textbf{Memory usage:} Penggunaan memori selama proses inference
+\end{itemize}
+
+\subsubsection{Metrik Estimasi Ukuran}
+
+\begin{itemize}
+    \item \textbf{MAE (Mean Absolute Error):} Rata-rata error absolut dalam estimasi diameter dan kedalaman
+    \item \textbf{RMSE (Root Mean Square Error):} Root mean square error untuk mengukur presisi estimasi
+    \item \textbf{Accuracy:} Persentase estimasi yang berada dalam toleransi error yang dapat diterima
+\end{itemize}
+
+\subsection{Analisis Statistik}
+
+Analisis statistik digunakan untuk memahami distribusi data dan signifikansi hasil yang diperoleh.
+
+\subsubsection{Descriptive Statistics}
+
+\begin{itemize}
+    \item \textbf{Central tendency:} Mean, median, dan mode untuk metrik performa
+    \item \textbf{Variability:} Standard deviation, variance, dan range
+    \item \textbf{Distribution analysis:} Analisis distribusi normal dan skewness
+\end{itemize}
+
+\subsubsection{Inferential Statistics}
+
+\begin{itemize}
+    \item \textbf{Confusion matrix:} Analisis detail performa klasifikasi dan deteksi
+    \item \textbf{ROC curve:} Analisis trade-off antara true positive rate dan false positive rate
+    \item \textbf{Precision-Recall curve:} Analisis performa pada berbagai threshold confidence
+    \item \textbf{Statistical significance:} Uji t-test dan ANOVA untuk membandingkan performa
+\end{itemize}
+
+\subsection{Visualisasi dan Interpretasi}
+
+Visualisasi data digunakan untuk memudahkan interpretasi hasil dan komunikasi temuan penelitian.
+
+\subsubsection{Training Visualization}
+
+\begin{itemize}
+    \item \textbf{Loss curves:} Grafik training loss dan validation loss untuk monitoring konvergensi
+    \item \textbf{Learning rate schedule:} Visualisasi penyesuaian learning rate selama training
+    \item \textbf{Metric progression:} Grafik perkembangan metrik evaluasi selama training
+\end{itemize}
+
+\subsubsection{Performance Visualization}
+
+\begin{itemize}
+    \item \textbf{Detection results:} Visualisasi hasil deteksi dengan bounding box dan confidence score
+    \item \textbf{Depth maps:} Visualisasi estimasi kedalaman dan ukuran lubang
+    \item \textbf{Performance comparison:} Grafik perbandingan performa dengan baseline dan state-of-the-art
+    \item \textbf{Error analysis:} Visualisasi kasus false positive dan false negative
+\end{itemize}
+
+\subsubsection{System Monitoring}
+
+\begin{itemize}
+    \item \textbf{Real-time dashboard:} Interface monitoring performa sistem secara real-time
+    \item \textbf{Performance trends:} Grafik trend performa sistem over time
+    \item \textbf{Resource utilization:} Monitoring penggunaan CPU, GPU, dan memory
+\end{itemize}
+
+% DAFTAR PUSTAKA
+\addcontentsline{toc}{chapter}{DAFTAR PUSTAKA}
+\chapter*{DAFTAR PUSTAKA}
+
+\begin{thebibliography}{99}
+
+\bibitem{albawi2017}
+[1] Albawi, S., Mohammed, T. A., \& Al-Zawi, S. (2017). Understanding of a Convolutional Neural Network. \textit{2017 International Conference on Engineering and Technology (ICET)}, 1-6.
+
+\bibitem{lecun2015}
+[2] LeCun, Y., Bengio, Y., \& Hinton, G. (2015). Deep Learning. \textit{Nature}, 521(7553), 436-444.
+
+\bibitem{zhao2019}
+[3] Zhao, Z. Q., Zheng, P., Xu, S. T., \& Wu, X. (2019). Object Detection with Deep Learning: A Review. \textit{IEEE Transactions on Neural Networks and Learning Systems}, 30(11), 3212-3232.
+
+\bibitem{redmon2016}
+[4] Redmon, J., et al. (2016). You Only Look Once: Unified, Real-Time Object Detection. \textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}, 779-788.
+
+\bibitem{godard2017}
+[5] Godard, C., Mac Aodha, O., \& Brostow, G. J. (2017). Unsupervised Monocular Depth Estimation with Left-Right Consistency. \textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}, 270-279.
+
+\bibitem{laina2016}
+[6] Laina, I., et al. (2016). Deeper Depth Prediction with Fully Convolutional Residual Networks. \textit{Proceedings of the IEEE International Conference on 3D Vision}, 239-248.
+
+\bibitem{ranftl2021}
+[7] Ranftl, R., Bochkovskiy, A., \& Koltun, V. (2021). Vision Transformers for Dense Prediction. \textit{Proceedings of the IEEE/CVF International Conference on Computer Vision}, 12179-12188.
+
+\bibitem{bewley2016}
+[8] Bewley, A., Ge, Z., Ott, L., Ramos, F., \& Upcroft, B. (2016). Simple Online and Realtime Tracking. \textit{2016 IEEE International Conference on Image Processing (ICIP)}, 3464-3468.
+
+\bibitem{aharon2022}
+[9] Aharon, N., et al. (2022). BoT-SORT: Robust Associations Multi-Pedestrian Tracking. \textit{arXiv preprint arXiv:2206.14651}.
+
+\bibitem{kalman1960}
+[10] Kalman, R. E. (1960). A New Approach to Linear Filtering and Prediction Problems. \textit{Journal of Basic Engineering}, 82(1), 35-45.
+
+\bibitem{fielding2000}
+[11] Fielding, R. T. (2000). Architectural Styles and the Design of Network-based Software Architectures. \textit{Doctoral Dissertation, University of California, Irvine}.
+
+\bibitem{richardson2007}
+[12] Richardson, L., \& Ruby, S. (2007). RESTful Web Services. \textit{O'Reilly Media, Inc.}
+
+\bibitem{liu1973}
+[13] Liu, C. L., \& Layland, J. W. (1973). Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment. \textit{Journal of the ACM}, 20(1), 46-61.
+
+\bibitem{kopetz2011}
+[14] Kopetz, H. (2011). Real-Time Systems: Design Principles for Distributed Embedded Applications. \textit{Springer Science \& Business Media}.
+
+\bibitem{huber1981}
+[15] Huber, P. J. (1981). Robust Statistics. \textit{John Wiley \& Sons}.
+
+\bibitem{shi2016}
+[16] Shi, W., Cao, J., Zhang, Q., Li, Y., \& Xu, L. (2016). Edge Computing: Vision and Challenges. \textit{IEEE Internet of Things Journal}, 3(5), 637-646.
+
+\bibitem{satyanarayanan2017}
+[17] Satyanarayanan, M. (2017). The Emergence of Edge Computing. \textit{Computer}, 50(1), 30-39.
+
+\bibitem{depthanything2024}
+[18] DepthAnything Team. (2024). DepthAnything V2: Dense Prediction Transformer for Monocular Depth Estimation. \textit{arXiv preprint arXiv:2406.09414}.
+
+\end{thebibliography}
+
+% LAMPIRAN
+\addcontentsline{toc}{chapter}{LAMPIRAN}
+\chapter*{LAMPIRAN}
+
+\textit{[Lampiran akan ditambahkan pada tahap selanjutnya]}
+
+\end{document}

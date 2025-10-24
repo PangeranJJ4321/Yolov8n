@@ -1,0 +1,13 @@
+train: G:/Yolov8n/datasets/potholes_raw/train/images
+val: G:/Yolov8n/datasets/potholes_raw/valid/images
+test: G:/Yolov8n/datasets/potholes_raw/test/images
+
+nc: 1
+names: ['pothole']
+
+roboflow:
+  workspace: brad-dwyer
+  project: pothole-voxrl
+  version: 1
+  license: ODbL v1.0
+  url: https://universe.roboflow.com/brad-dwyer/pothole-voxrl/dataset/1
