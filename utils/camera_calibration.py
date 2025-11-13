@@ -18,12 +18,17 @@ from pathlib import Path
 import argparse
  
 
-def create_checkerboard_pattern():
-    """Buat checkerboard pattern untuk kalibrasi"""
-    # Ukuran checkerboard (internal corners)
-    pattern_size = (9, 6)  # 9x6 internal corners
-    square_size = 25  # 25mm per square
+def create_checkerboard_pattern(pattern_size=(9, 6), square_size=25):
+    """Buat checkerboard pattern untuk kalibrasi
     
+    Args:
+        pattern_size: Tuple (width, height) internal corners, default: (9, 6)
+        square_size: Ukuran kotak dalam mm, default: 25
+    
+    Returns:
+        objp: 3D object points
+        pattern_size: Pattern size yang digunakan
+    """
     # Buat objek points untuk kalibrasi
     objp = np.zeros((pattern_size[0] * pattern_size[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2)
@@ -32,17 +37,20 @@ def create_checkerboard_pattern():
     return objp, pattern_size
 
 
-def calibrate_camera(images_folder, output_file="camera_params.yaml"):
+def calibrate_camera(images_folder, output_file="camera_params.yaml", 
+                     pattern_size=(9, 6), square_size=25):
     """
     Kalibrasi kamera menggunakan gambar checkerboard
     
     Args:
         images_folder: Path ke folder berisi gambar kalibrasi
         output_file: File output untuk menyimpan parameter
+        pattern_size: Tuple (width, height) internal corners, default: (9, 6)
+        square_size: Ukuran kotak dalam mm, default: 25
     """
     
     # Setup
-    objp, pattern_size = create_checkerboard_pattern()
+    objp, pattern_size = create_checkerboard_pattern(pattern_size, square_size)
     objpoints = []  # 3D points in real world space
     imgpoints = []  # 2D points in image plane
     
@@ -57,6 +65,8 @@ def calibrate_camera(images_folder, output_file="camera_params.yaml"):
         return False
     
     print(f"📁 Ditemukan {len(image_files)} gambar kalibrasi")
+    print(f"📐 Pattern size: {pattern_size[0]}×{pattern_size[1]} internal corners")
+    print(f"📏 Square size: {square_size}mm")
     
     # Process each image
     successful_detections = 0
@@ -138,7 +148,7 @@ def calibrate_camera(images_folder, output_file="camera_params.yaml"):
         'total_images': len(image_files),
         'calibration_date': str(Path().cwd()),
         'checkerboard_size': pattern_size,
-        'square_size_mm': 25
+        'square_size_mm': square_size
     }
     
     # Save as YAML
@@ -198,10 +208,29 @@ def load_camera_params(param_file):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Camera Calibration untuk Pothole Detection')
+    parser = argparse.ArgumentParser(
+        description='Camera Calibration untuk Pothole Detection',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+    Contoh penggunaan:
+    # Kalibrasi dengan pattern default (9×6, 25mm)
+    python camera_calibration.py --images calibration_images/ --output params.yaml
+    
+    # Kalibrasi untuk kertas A4 (7×10 internal corners, 25mm)
+    python camera_calibration.py --images calibration_images/ --output params.yaml --pattern-size 7 10 --square-size 25
+    
+    # Test parameter yang sudah ada
+    python camera_calibration.py --images calibration_images/ --load params.yaml
+        """
+    )
     parser.add_argument('--images', required=True, help='Path ke folder gambar kalibrasi')
     parser.add_argument('--output', default='camera_params.yaml', help='File output parameter')
     parser.add_argument('--load', help='Load parameter yang sudah ada untuk testing')
+    parser.add_argument('--pattern-size', type=int, nargs=2, default=[9, 6], 
+                        metavar=('WIDTH', 'HEIGHT'),
+                        help='Pattern size (width height) internal corners, default: 9 6')
+    parser.add_argument('--square-size', type=float, default=25.0,
+                        help='Ukuran kotak dalam mm, default: 25.0')
     
     args = parser.parse_args()
     
@@ -220,7 +249,8 @@ def main():
             print(f"❌ Folder tidak ditemukan: {args.images}")
             return
         
-        calibrate_camera(args.images, args.output)
+        pattern_size = tuple(args.pattern_size)
+        calibrate_camera(args.images, args.output, pattern_size, args.square_size)
 
 
 if __name__ == "__main__":

@@ -6,8 +6,22 @@ Mendapatkan parameter intrinsik kamera (focal length, principal point, distortio
 ## 📋 Persiapan
 
 ### 1. Cetak Checkerboard Pattern
+
+#### Opsi Standar (9×6)
 - **Ukuran kotak:** 25mm × 25mm (sesuai proposal)
 - **Jumlah kotak:** 9×6 internal corners (10×7 total squares)
+- **Total ukuran:** 250mm × 175mm
+
+#### Opsi untuk Kertas A4 (Disarankan)
+- **Ukuran kotak:** 25mm × 25mm
+- **Jumlah kotak:** 7×10 internal corners (8×11 total squares)
+- **Total ukuran:** 200mm × 275mm (muat di A4 210mm × 297mm dengan margin)
+- **Keuntungan:** Lebih mudah dicetak di kertas A4 standar
+
+#### Catatan Penting
+- **Pattern size tidak harus 9×6** - bisa disesuaikan dengan kebutuhan
+- **Yang penting:** Ukuran kotak harus diketahui dengan pasti (25mm) untuk kalibrasi metrik
+- **Minimal pattern:** 6×4 internal corners untuk kalibrasi yang baik
 - **Kualitas:** Cetak dengan printer berkualitas tinggi, pastikan pattern datar
 - **Alternatif:** Download dari [OpenCV checkerboard generator](https://docs.opencv.org/4.x/da/df5/tutorial_py_calibration.html)
 
@@ -47,13 +61,37 @@ G:/Yolov8n/calibration_images/
 ```
 
 ### 2. Jalankan Script Kalibrasi
-```powershell
-# Kalibrasi baru
-G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\camera_calibration.py --images G:/Yolov8n/calibration_images --output camera_params.yaml
 
+#### Kalibrasi dengan Pattern Standar (9×6)
+```powershell
+# Kalibrasi baru dengan pattern default (9×6, 25mm)
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\camera_calibration.py --images G:/Yolov8n/calibration_images --output camera_params.yaml
+```
+
+#### Kalibrasi untuk Kertas A4 (7×10)
+```powershell
+# Kalibrasi dengan pattern A4 (7×10 internal corners, 25mm kotak)
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\camera_calibration.py --images G:/Yolov8n/calibration_images --output camera_params.yaml --pattern-size 7 10 --square-size 25
+```
+
+#### Pattern Kustom
+```powershell
+# Kalibrasi dengan pattern kustom (misal: 8×11, 20mm kotak)
+G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\camera_calibration.py --images G:/Yolov8n/calibration_images --output camera_params.yaml --pattern-size 8 11 --square-size 20
+```
+
+#### Test Parameter yang Sudah Ada
+```powershell
 # Test parameter yang sudah ada
 G:\Yolov8n\yolov8\Scripts\python.exe G:\Yolov8n\camera_calibration.py --images G:/Yolov8n/calibration_images --load camera_params.yaml
 ```
+
+#### Parameter Command Line
+- `--images`: Path ke folder gambar kalibrasi (required)
+- `--output`: File output untuk menyimpan parameter (default: `camera_params.yaml`)
+- `--load`: Load parameter yang sudah ada untuk testing
+- `--pattern-size WIDTH HEIGHT`: Pattern size internal corners (default: `9 6`)
+- `--square-size SIZE`: Ukuran kotak dalam mm (default: `25.0`)
 
 ### 3. Output yang Dihasilkan
 - `camera_params.yaml` - Parameter kamera (YAML)
@@ -150,7 +188,8 @@ camera_metadata:
 
 ## ✅ Checklist Kalibrasi
 
-- [ ] Checkerboard pattern 25mm×25mm dicetak
+- [ ] Checkerboard pattern dicetak (ukuran kotak diketahui dengan pasti, misal: 25mm×25mm)
+- [ ] Pattern size sesuai dengan yang digunakan di script (cek dengan `--pattern-size`)
 - [ ] 15-20 gambar kalibrasi dengan variasi posisi
 - [ ] Script kalibrasi berjalan tanpa error
 - [ ] Reprojection error < 0.5 pixel
