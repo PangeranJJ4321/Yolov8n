@@ -23,6 +23,12 @@ except ImportError:
     KALMAN_AVAILABLE = False
     MeasurementKalmanFilter = None
 
+# Import PotholeMeasurement untuk digunakan di runtime (bukan hanya type checking)
+try:
+    from pothole_detection_system import PotholeMeasurement as PotholeMeasurementClass
+except ImportError:
+    PotholeMeasurementClass = None
+
 
 class Track:
     """Class untuk menyimpan state track"""
@@ -80,6 +86,20 @@ class Track:
         
         # Apply Kalman filter jika available
         if apply_kalman and self.kalman_filter is not None:
+            # CDKF: Dynamic measurement noise berdasarkan confidence dan depth
+            # R = lambda / c + theta * max(d, d0)
+            # Dimana: c = confidence, d = depth (z_avg), lambda & theta = tuning params
+            lambda_val = 0.5  # Tuning parameter
+            theta_val = 0.1   # Tuning parameter
+            d0 = 0.5          # Minimum depth threshold (meter)
+            
+            c = max(measurement.confidence, 1e-6)  # Avoid division by zero
+            d = measurement.z_avg  # Depth dalam meter
+            
+            # Calculate adaptive measurement noise
+            R_adaptive = lambda_val / c + theta_val * max(d, d0)
+            self.kalman_filter.measurement_noise = R_adaptive
+            
             # Update Kalman filter dengan measurement baru
             filtered_diameter, filtered_depth = self.kalman_filter.update(
                 measurement.diameter_cm,
@@ -87,8 +107,11 @@ class Track:
             )
             
             # Create filtered measurement (copy original dengan filtered values)
-            from pothole_detection_system import PotholeMeasurement
-            filtered_measurement = PotholeMeasurement(
+            if PotholeMeasurementClass is None:
+                # Fallback jika import gagal
+                filtered_measurement = measurement
+            else:
+                filtered_measurement = PotholeMeasurementClass(
                 bbox=measurement.bbox,
                 confidence=measurement.confidence,
                 diameter_cm=filtered_diameter,
@@ -120,9 +143,8 @@ class Track:
         if self.kalman_filter is not None:
             pred_diameter, pred_depth = self.kalman_filter.predict()
             # Update measurement dengan predicted values (untuk association)
-            if hasattr(self, 'measurement') and self.measurement is not None:
-                from pothole_detection_system import PotholeMeasurement
-                self.measurement = PotholeMeasurement(
+            if hasattr(self, 'measurement') and self.measurement is not None and PotholeMeasurementClass is not None:
+                self.measurement = PotholeMeasurementClass(
                     bbox=tuple(self.bbox.astype(int)),
                     confidence=self.measurement.confidence,
                     diameter_cm=pred_diameter,
@@ -268,12 +290,14 @@ class PotholeTracker:
         if len(detections) == 0:
             return np.empty((0, 2), dtype=int), [], list(range(len(tracks)))
         
+        # Predict all tracks once before calculating cost matrix
+        for track in tracks:
+            track.predict()
+        
         # Calculate cost matrix (IoU)
         cost_matrix = np.zeros((len(detections), len(tracks)))
         for i, (det_bbox, _) in enumerate(detections):
             for j, track in enumerate(tracks):
-                # Predict track position
-                track.predict()
                 cost_matrix[i, j] = 1.0 - self._calculate_iou(det_bbox, track.get_state())
         
         # Hungarian algorithm (simple greedy matching untuk sekarang)

@@ -1,1 +1,63 @@
+# Virtual Environment
 /yolov8
+/venv
+/env
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Model Weights (JANGAN push - terlalu besar)
+*.pt
+*.pth
+*.onnx
+*.weights
+runs/
+weights/
+
+# Datasets (JANGAN push - terlalu besar)
+datasets/
+*.zip
+*.tar.gz
+
+# Output files
+output/
+*.avi
+*.mp4
+*.npy
+*.npz
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+*.cache
+.cache/
+
+# Large files
+*.pdf
+*.h5
+*.pkl
+*.pickle
+
+# Camera calibration (optional - bisa di-push jika tidak sensitif)
+# camera_params.json

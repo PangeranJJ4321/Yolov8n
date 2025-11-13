@@ -161,7 +161,16 @@ class PotholeDetectionSystem:
         
         # Create border mask (area border tapi bukan ROI)
         border_mask = np.ones((border_y2 - border_y1, border_x2 - border_x1), dtype=bool)
-        border_mask[(y1-border_y1):(y2-border_y1), (x1-border_x1):(x2-border_x1)] = False
+        
+        # Convert to local coordinates within border region
+        local_y1 = max(0, y1 - border_y1)
+        local_x1 = max(0, x1 - border_x1)
+        local_y2 = min(border_y2 - border_y1, y2 - border_y1)
+        local_x2 = min(border_x2 - border_x1, x2 - border_x1)
+        
+        # Only mask out ROI if valid
+        if local_y2 > local_y1 and local_x2 > local_x1:
+            border_mask[local_y1:local_y2, local_x1:local_x2] = False
         
         border_depth = border_region[border_mask]
         
@@ -266,6 +275,11 @@ class PotholeDetectionSystem:
         
         # Fallback: use bounding box width
         width_px = x2 - x1
+        
+        # Skip tiny bounding boxes yang menghasilkan diameter sangat noisy
+        if width_px < 8:
+            return float('nan')  # Skip bbox terlalu kecil
+        
         diameter_cm = (width_px * z_avg * 100) / self.fx
         return float(diameter_cm)
     
@@ -285,9 +299,28 @@ class PotholeDetectionSystem:
         measurements = []
         
         for det in detections:
-            # Extract bounding box
-            bbox = det.xyxy[0].cpu().numpy()  # (x1, y1, x2, y2)
-            confidence = float(det.conf[0].cpu().numpy())
+            # Extract bounding box - gunakan API Ultralytics yang stabil
+            # Support untuk berbagai versi API
+            if hasattr(det, 'xyxy'):
+                if hasattr(det.xyxy, 'cpu'):
+                    bbox = det.xyxy[0].cpu().numpy()  # (x1, y1, x2, y2)
+                else:
+                    bbox = det.xyxy[0]  # Already numpy
+            elif hasattr(det, 'boxes'):
+                bbox = det.boxes.xyxy[0].cpu().numpy()
+            else:
+                continue  # Skip jika format tidak dikenal
+            
+            # Extract confidence
+            if hasattr(det, 'conf'):
+                if hasattr(det.conf, 'cpu'):
+                    confidence = float(det.conf[0].cpu().numpy())
+                else:
+                    confidence = float(det.conf[0])
+            elif hasattr(det, 'boxes'):
+                confidence = float(det.boxes.conf[0].cpu().numpy())
+            else:
+                confidence = 0.5  # Default
             
             # Skip jika confidence terlalu rendah
             if confidence < self.conf_threshold:
@@ -312,18 +345,31 @@ class PotholeDetectionSystem:
             # Calculate diameter
             mask = None
             if hasattr(det, 'masks') and det.masks is not None:
-                # Use segmentation mask if available
-                mask = det.masks.data[0].cpu().numpy()
-                # Resize mask to image size
-                h, w = depth_map_abs.shape
-                mask = cv2.resize(mask, (w, h))
-                diameter_cm = self._calculate_diameter(bbox, z_avg, use_mask=True, mask=mask)
+                try:
+                    mask_data = det.masks.data
+                    if mask_data is not None and len(mask_data) > 0:
+                        mask = mask_data[0].cpu().numpy()
+                        # Resize mask to image size
+                        h, w = depth_map_abs.shape
+                        mask = cv2.resize(mask, (w, h))
+                        diameter_cm = self._calculate_diameter(bbox, z_avg, use_mask=True, mask=mask)
+                    else:
+                        # Fallback to bbox if mask is empty
+                        diameter_cm = self._calculate_diameter(bbox, z_avg, use_mask=False)
+                except Exception as e:
+                    # Fallback to bbox if mask processing fails
+                    print(f"⚠️  Warning: Error processing mask: {e}")
+                    diameter_cm = self._calculate_diameter(bbox, z_avg, use_mask=False)
             else:
                 # Use bounding box
                 diameter_cm = self._calculate_diameter(bbox, z_avg, use_mask=False)
             
             # Calculate depth (cm)
             depth_cm = (z_surface - z_base) * 100
+            
+            # Skip jika diameter NaN (bbox terlalu kecil)
+            if np.isnan(diameter_cm):
+                continue
             
             # Create measurement object
             measurement = PotholeMeasurement(
@@ -360,21 +406,41 @@ class PotholeDetectionSystem:
         # Step 1: Undistort image (jika kalibrasi tersedia)
         image_undistorted = self.depth_estimator.undistort_image(image)
         
-        # Step 2: YOLO Detection
+        # Step 2: YOLO Detection - gunakan API yang stabil
         results = self.yolo_model(image_undistorted, conf=self.conf_threshold)
+        res = results[0] if len(results) > 0 else None
         
-        # Step 3: Depth Estimation
+        # Step 3: Depth Estimation (selalu dilakukan untuk konsistensi)
         depth_map_rel, _ = self.depth_estimator.estimate_depth(image_undistorted)
         
         # Step 4: Scale Recovery
-        if self.depth_estimator.camera_params is not None:
+        if self.depth_estimator.camera_params is not None and not self.depth_estimator._using_dummy:
             depth_map_abs, scale_factor = self.depth_estimator.scale_recovery(depth_map_rel)
         else:
+            if self.depth_estimator._using_dummy:
+                print("⚠️  Warning: Using dummy depth map, scale recovery skipped")
             depth_map_abs = depth_map_rel
             scale_factor = 1.0
         
+        if res is None:
+            # No detections
+            return {
+                'detections': [],
+                'depth_map_relative': depth_map_rel,
+                'depth_map_absolute': depth_map_abs,
+                'measurements': [],
+                'tracks': [],
+                'image_undistorted': image_undistorted,
+                'scale_factor': scale_factor
+            }
+        
+        # Extract detections dengan API yang kompatibel
+        if hasattr(res, 'boxes'):
+            detections = res.boxes
+        else:
+            detections = res
+        
         # Step 5: Calculate Measurements
-        detections = results[0].boxes if len(results) > 0 else []
         measurements = self._calculate_measurements(detections, depth_map_abs)
         
         # Step 6: Tracking (jika enabled)

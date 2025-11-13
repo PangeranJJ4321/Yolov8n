@@ -68,6 +68,10 @@ class MeasurementKalmanFilter:
         self._process_noise = process_noise
         self._measurement_noise = measurement_noise
         self._update_noise_matrices()
+        
+        # Track initialization
+        self.is_initialized = False
+        self.update_count = 0
     
     def _update_noise_matrices(self):
         """Update noise matrices dengan current parameters"""
@@ -101,10 +105,6 @@ class MeasurementKalmanFilter:
     def measurement_noise(self, value: float):
         self._measurement_noise = value
         self._update_noise_matrices()
-        
-        # Track initialization
-        self.is_initialized = False
-        self.update_count = 0
     
     def initialize(self, diameter: float, depth: float):
         """

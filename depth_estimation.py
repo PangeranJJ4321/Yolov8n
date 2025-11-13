@@ -68,6 +68,7 @@ class DepthEstimator:
         # Initialize model (lazy loading)
         self.model = None
         self._model_loaded = False
+        self._using_dummy = False  # Flag untuk dummy depth mode
         
         print(f"✅ DepthEstimator initialized")
         print(f"   Model type: {model_type}")
@@ -150,6 +151,7 @@ class DepthEstimator:
                 print(f"✅ DepthAnything V2 ({self.model_type}) loaded from local repo")
                 self.model = model
                 self._model_loaded = True
+                self._using_dummy = False
                 return
         except Exception as e:
             print(f"⚠️  Error dengan local repo: {e}")
@@ -161,9 +163,10 @@ class DepthEstimator:
             print("   1. Clone repo: git clone https://github.com/DepthAnything/Depth-Anything-V2.git")
             print("   2. Install: cd Depth-Anything-V2 && pip install -e .")
             print("   3. Atau install package: pip install depth-anything-v2")
-            print("\n⚠️  Menggunakan dummy model untuk testing (depth map akan dummy)")
+            print("\n⚠️  [WARNING] Using dummy depth map for fallback mode.")
             self.model = None
-            self._model_loaded = True
+            self._model_loaded = False
+            self._using_dummy = True
     
     def undistort_image(self, image: np.ndarray) -> np.ndarray:
         """
@@ -255,9 +258,10 @@ class DepthEstimator:
             else:
                 raise AttributeError("Model tidak memiliki method infer_image, predict, atau __call__")
             
-            # Normalize depth map (0-1 range, atau raw values tergantung model)
-            if depth_map.max() > 1.0:
-                depth_map = depth_map / depth_map.max()  # Normalize to 0-1
+            # JANGAN normalisasi otomatis! Biarkan scale recovery yang menangani konversi relatif → absolut
+            # Normalisasi otomatis akan menghancurkan skala absolut jika model sudah menghasilkan nilai dalam meter
+            # if depth_map.max() > 1.0:
+            #     depth_map = depth_map / depth_map.max()  # Normalize to 0-1
             
             # Ensure same size as input
             if depth_map.shape[:2] != (h, w):
@@ -311,9 +315,12 @@ class DepthEstimator:
         
         # Hitung depth absolut untuk area jalan
         pitch_rad = np.radians(pitch_angle)
-        if abs(pitch_angle) < 1.0:  # Jika pitch sangat kecil, asumsikan horizontal
-            road_depth_abs = self.camera_height
+        if abs(pitch_angle) < 1.0:  # Jika pitch sangat kecil, gunakan aproksimasi cos
+            # Pendekatan lebih realistis: road_depth = camera_height / cos(pitch)
+            # Untuk pitch kecil, cos ≈ 1, tapi lebih akurat secara fisika
+            road_depth_abs = self.camera_height / np.cos(pitch_rad)
         else:
+            # Untuk pitch besar, gunakan sin (jika kamera miring ke bawah)
             road_depth_abs = self.camera_height / np.sin(pitch_rad)
         
         # Hitung scale factor
