@@ -14,10 +14,10 @@ import warnings
 warnings.filterwarnings('ignore')
 
 if TYPE_CHECKING:
-    from pothole_detection_system import PotholeMeasurement
+    from .pothole_detection_system import PotholeMeasurement
 
 try:
-    from kalman_filter import MeasurementKalmanFilter
+    from .kalman_filter import MeasurementKalmanFilter
     KALMAN_AVAILABLE = True
 except ImportError:
     KALMAN_AVAILABLE = False
@@ -25,7 +25,7 @@ except ImportError:
 
 # Import PotholeMeasurement untuk digunakan di runtime (bukan hanya type checking)
 try:
-    from pothole_detection_system import PotholeMeasurement as PotholeMeasurementClass
+    from .pothole_detection_system import PotholeMeasurement as PotholeMeasurementClass
 except ImportError:
     PotholeMeasurementClass = None
 

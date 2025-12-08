@@ -11,8 +11,8 @@ import numpy as np
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Union
 from ultralytics import YOLO
-from depth_estimation import DepthEstimator
-from pothole_tracker import PotholeTracker, Track
+from .depth_estimation import DepthEstimator
+from .pothole_tracker import PotholeTracker, Track
 import warnings
 warnings.filterwarnings('ignore')
 

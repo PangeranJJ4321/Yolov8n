@@ -70,7 +70,9 @@ pip install -e .
 ### 1. Single Image Processing
 
 ```python
-from pothole_detection_system import PotholeDetectionSystem
+from src.pothole_detection_system import PotholeDetectionSystem
+# atau jika menggunakan package:
+# from src import PotholeDetectionSystem
 import cv2
 
 # Initialize system
@@ -218,11 +220,23 @@ Lihat file `example_usage.py` untuk contoh lengkap:
 
 ```
 Yolov8n/
-├── pothole_detection_system.py  # Main system class
-├── depth_estimation.py           # DepthEstimator class
-├── example_usage.py              # Contoh penggunaan
-├── camera_calibration.py         # Utility kalibrasi
-└── README_POTHOLE_SYSTEM.md     # Dokumentasi ini
+├── src/                          # Source code utama
+│   ├── __init__.py              # Package initialization
+│   ├── pothole_detection_system.py  # Main system class
+│   ├── depth_estimation.py      # DepthEstimator class
+│   ├── pothole_tracker.py       # BoT-SORT tracker
+│   ├── kalman_filter.py         # Kalman filter untuk temporal filtering
+│   └── example_usage.py         # Contoh penggunaan (module)
+├── example_usage.py             # Wrapper script (bisa dijalankan langsung)
+├── utils/                       # Utility functions
+│   └── camera_calibration.py    # Utility kalibrasi
+├── runs/                        # Hasil training
+│   └── detect/
+│       └── yolov8n-potholes-ft/
+│           └── weights/
+│               └── best.pt      # Model YOLO yang digunakan
+└── panduan/                     # Dokumentasi
+    └── README_POTHOLE_SYSTEM.md
 ```
 
 ## ⚠️ Troubleshooting

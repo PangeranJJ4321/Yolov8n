@@ -1,15 +1,12 @@
 """
 Contoh Penggunaan PotholeDetectionSystem
 Demonstrasi pipeline lengkap: YOLO Detection + Depth Estimation + Measurement
-
-File ini adalah wrapper untuk memudahkan penggunaan dari root directory.
-Untuk penggunaan sebagai module, gunakan: from src import PotholeDetectionSystem
 """
 
 import cv2
 import numpy as np
 from pathlib import Path
-from src.pothole_detection_system import PotholeDetectionSystem
+from .pothole_detection_system import PotholeDetectionSystem
 import matplotlib.pyplot as plt
 
 

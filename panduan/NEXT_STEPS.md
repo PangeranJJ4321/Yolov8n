@@ -19,7 +19,8 @@ Semua fase utama sudah selesai:
 **Aktivitas**:
 ```python
 # Test dengan single image
-from pothole_detection_system import PotholeDetectionSystem
+from src.pothole_detection_system import PotholeDetectionSystem
+# atau: from src import PotholeDetectionSystem
 
 system = PotholeDetectionSystem(
     yolo_model_path="runs/detect/yolov8n-potholes-ft/weights/best.pt",
@@ -234,7 +235,7 @@ system.process_video(
 ```bash
 cd Yolov8n
 python -c "
-from pothole_detection_system import PotholeDetectionSystem
+from src.pothole_detection_system import PotholeDetectionSystem
 import cv2
 
 system = PotholeDetectionSystem(
