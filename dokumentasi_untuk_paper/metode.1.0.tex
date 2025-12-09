@@ -1,25 +1,51 @@
+\section{Metode}
 
-% File: dokumentasi_untuk_paper/metode.1.0.tex
+Kerangka kerja yang diusulkan dirancang sebagai sistem terintegrasi untuk mendeteksi lubang jalan, menghitung karakteristik fisiknya, dan menyampaikan hasil pengukuran secara otomatis. Gambar~1 menunjukkan alur lengkap pipeline. Pertama, aliran video yang diperoleh dari kamera diproses oleh modul deteksi berbasis YOLOv8n-seg untuk mengidentifikasi lokasi lubang jalan dan menghasilkan representasi mask segmentasi yang presisi. Hasil deteksi ini kemudian diolah oleh algoritma BoT-SORT, yang menetapkan identitas unik bagi setiap lubang dan mempertahankan konsistensi pelacakan antar-frame.
+
+Secara paralel, frame yang sama dianalisis oleh model estimasi kedalaman monokuler DepthAnything V2 untuk menghasilkan peta kedalaman secara densitas penuh. Informasi kedalaman dan segmentasi selanjutnya digabungkan dalam tahap pengukuran geometris, di mana diameter serta kedalaman lubang dihitung melalui pendekatan statistik yang dirancang untuk meminimalkan pengaruh \textit{noise}. Hasil pengukuran yang telah distabilkan diproses lebih lanjut dan dikemas dalam format terstruktur sebelum dikirimkan ke server melalui API untuk keperluan pemantauan atau pengambilan keputusan.
+
+Gambar~1: Diagram alur keseluruhan kerangka kerja yang diusulkan.
+
+Akhirnya, untuk meningkatkan ketahanan sistem terhadap fluktuasi temporal, ukuran lubang yang diperkirakan pada frame-frame berturut-turut diproses menggunakan Confidence-and-Distance Kalman Filter (CDKF). Filter ini mengintegrasikan tingkat kepercayaan deteksi serta jarak objek terhadap kamera sebagai komponen ketidakpastian dalam pemodelan, sehingga menghasilkan estimasi dimensi lubang jalan yang lebih stabil, konsisten, dan dapat diandalkan dari waktu ke waktu.
+
 
 \subsection{Pengumpulan dan Anotasi Dataset}
-Penelitian ini menggunakan kombinasi dataset publik dan data lokal untuk memastikan keberagaman kondisi jalan. Dataset publik RDD2022 digunakan sebagai data dasar, yang kemudian diperkaya dengan pengambilan data lokal menggunakan kamera \textit{dashcam} dan telepon seluler untuk merepresentasikan kondisi jalan di Indonesia yang bervariasi. 
 
-Proses anotasi dilakukan menggunakan format YOLO, dengan label kelas tunggal "pothole". Untuk meningkatkan akurasi pengukuran area, kami memprioritaskan penggunaan \textit{instance segmentation mask} dibandingkan \textit{bounding box} persegi panjang. Data dibagi menjadi set pelatihan (70\%), validasi (15\%), dan pengujian (15\%). Metadata tambahan seperti \textit{timestamp}, koordinat GPS, dan parameter kalibrasi kamera disimpan untuk setiap sesi pengambilan data.
+Gambar 2
+Penelitian ini menggunakan kombinasi dataset publik dan data lokal untuk memperoleh keragaman visual yang dibutuhkan dalam proses pelatihan model deteksi lubang jalan. Dataset publik utama diperoleh dari platform Roboflow Universe, yang menyediakan kumpulan dataset \textit{instance segmentation} lubang jalan dari berbagai kontributor global. Keragaman sumber data ini menghasilkan variasi signifikan pada tekstur jalan, kondisi pencahayaan, sudut pengambilan gambar, serta tingkat keparahan kerusakan, sehingga mendukung peningkatan kemampuan generalisasi model.
+
+Untuk memastikan sistem tetap adaptif terhadap karakteristik lingkungan lokal, dataset publik tersebut dilengkapi dengan data tambahan yang direkam menggunakan kamera \textit{dashcam} dan kamera telepon seluler pada kondisi nyata di lapangan. Pengambilan data dilakukan pada berbagai jenis permukaan jalan, variasi cuaca, serta intensitas lalu lintas yang berbeda, sehingga mencerminkan kondisi jalan Indonesia yang heterogen.
+
+Seluruh anotasi menggunakan format YOLO dengan kelas tunggal “pothole”. Karena penelitian ini menargetkan estimasi metrik yang presisi, anotasi dilakukan menggunakan \textit{instance segmentation mask} alih-alih \textit{bounding box} berbentuk persegi. Masker memungkinkan representasi kontur lubang jalan yang lebih akurat, yang sangat penting untuk proses pengukuran diameter berbasis proyeksi kamera dan estimasi kedalaman berbasis peta kedalaman.
+
+Dataset gabungan kemudian dibagi menjadi tiga subset: pelatihan (80\% atau 2697), validasi (9\% atau 300), dan pengujian (11\% atau 355), dengan mempertahankan keberagaman domain pada setiap subset. Untuk data lokal, metadata tambahan seperti \textit{timestamp}, koordinat GPS, dan parameter kalibrasi kamera dicatat selama proses akuisisi. Informasi ini digunakan pada tahap rekonstruksi kedalaman serta evaluasi spasial yang membutuhkan konsistensi geometris.
 
 \subsection{Pra-pemrosesan dan Kalibrasi Kamera}
-Sebelum proses inferensi, setiap \textit{frame} input mengalami koreksi distorsi lensa (\textit{undistortion}). Tahap ini sangat krusial untuk menjamin akurasi geometri pengukuran. Kami menggunakan model kamera \textit{pinhole} standar, di mana parameter intrinsik (matriks kamera $K$ dan koefisien distorsi $D$) diperoleh melalui proses kalibrasi papan catur (\textit{checkerboard}).
+Sistem ini menggunakan kamera telepon seluler sebagai sumber utama akuisisi video. Kamera ponsel umumnya memiliki distorsi lensa yang lebih besar dibandingkan kamera industri, sehingga tahap pra-pemrosesan menjadi sangat penting untuk menjaga akurasi pengukuran geometris. Setiap \textit{frame} terlebih dahulu melalui proses koreksi distorsi lensa (\textit{lens undistortion}) guna menghilangkan efek distorsi radial dan tangensial yang dapat mengubah bentuk lubang jalan pada citra.
 
-Persamaan koreksi distorsi dilakukan menggunakan fungsi pemetaan ulang piksel berdasarkan koefisien distorsi radial ($k_1, k_2, k_3$) dan tangensial ($p_1, p_2$). Frame yang telah dikoreksi kemudian diubah ukurannya menjadi $640 \times 640$ piksel untuk input model deteksi YOLOv8, sementara resolusi asli dipertahankan atau disesuaikan dengan input $518 \times 518$ untuk model estimasi kedalaman DepthAnything V2.
+Kalibrasi kamera dilakukan menggunakan model kamera \textit{pinhole}. Parameter intrinsik yang meliputi matriks kamera $K$ serta koefisien distorsi $D$ diperoleh melalui proses kalibrasi menggunakan pola papan catur (\textit{checkerboard}) yang direkam langsung oleh kamera ponsel. Proses ini menghasilkan estimasi koefisien distorsi radial ($k_1, k_2, k_3$) dan distorsi tangensial ($p_1, p_2$), yang kemudian digunakan untuk memetakan ulang piksel sehingga menghasilkan citra yang telah terkoreksi secara geometris.
+
+Setelah koreksi distorsi, citra kemudian dinormalisasi ukurannya sesuai kebutuhan masing-masing model. Frame untuk deteksi lubang diubah menjadi $640 \times 640$ piksel untuk kompatibilitas dengan arsitektur YOLOv8n-seg, sedangkan frame untuk estimasi kedalaman dipertahankan pada resolusi asli kamera atau disesuaikan menjadi $518 \times 518$ piksel mengikuti konfigurasi DepthAnything V2. Pemisahan jalur resolusi ini memastikan kedua model menerima kualitas informasi visual yang optimal tanpa mengorbankan detail tekstur yang diperlukan dalam rekonstruksi kedalaman.
 
 \subsection{Arsitektur Model Deteksi dan Segmentasi}
-Sistem ini mengimplementasikan model \textbf{YOLOv8n-seg} (\textit{Nano Segmentation}), varian ringan dari arsitektur YOLOv8 yang dirancang untuk efisiensi komputasi pada perangkat \textit{edge}. Model ini dilatih menggunakan teknik \textit{Transfer Learning} dari bobot pra-latih COCO, kemudian di-\textit{fine-tune} pada dataset lubang jalan yang telah dikumpulkan.
+Tahap deteksi lubang jalan dilakukan menggunakan model \textbf{YOLOv8n-seg}, yaitu varian ringan dari keluarga YOLOv8 yang dirancang khusus untuk kebutuhan segmentasi instans dengan latensi sangat rendah. Model ini dipilih karena memiliki keseimbangan optimal antara akurasi dan kecepatan, sehingga memungkinkan proses inferensi secara \textit{real-time} pada perangkat kelas konsumen seperti ponsel atau \textit{edge device} berperforma terbatas.
 
-YOLOv8n-seg tidak hanya menghasilkan koordinat \textit{bounding box} $(x, y, w, h)$, tetapi juga \textit{segmentation mask} poligon yang mengikuti kontur lubang secara presisi. Masker ini sangat penting untuk memisahkan area piksel lubang yang sebenarnya dari latar belakang jalan, yang secara signifikan meningkatkan akurasi estimasi kedalaman rata-rata di dalam lubang (ROI).
+Pelatihan model dilakukan melalui pendekatan \textit{transfer learning} dengan menggunakan bobot pra-latih pada dataset COCO sebagai titik awal, kemudian di-\textit{fine-tune} menggunakan dataset lubang jalan yang terdiri dari kombinasi data publik dan data lokal. Pendekatan ini memungkinkan model mengadaptasi pola tekstur jalan dan kontur lubang dengan lebih cepat tanpa memerlukan pelatihan dari awal.
+
+Berbeda dengan model deteksi berbasis kotak batas konvensional, YOLOv8n-seg tidak hanya memberikan prediksi \textit{bounding box} $(x, y, w, h)$, tetapi juga menghasilkan \textbf{mask segmentasi instans} yang mengikuti bentuk lubang jalan secara presisi. Masker ini sangat penting dalam pipeline pengukuran, karena:
+
+\begin{enumerate}
+    \item menghilangkan area latar belakang yang dapat mengganggu estimasi kedalaman,
+    \item memastikan hanya piksel yang benar-benar berada di dalam lubang yang digunakan dalam perhitungan statistik kedalaman,
+    \item memungkinkan pengukuran diameter melalui \textit{ellipse fitting} yang lebih akurat dibandingkan pendekatan berbasis bounding box.
+\end{enumerate}
+
+Dengan demikian, YOLOv8n-seg berfungsi sebagai fondasi utama yang menyediakan area \textit{Region of Interest} (ROI) berkualitas tinggi untuk tahap estimasi kedalaman dan pengukuran dimensi fisik pada langkah-langkah berikutnya.
 
 \subsection{Estimasi Kedalaman Monokuler dan Pemulihan Skala}
-Untuk mendapatkan informasi 3D dari citra 2D, kami menggunakan \textbf{DepthAnything V2}, sebuah model berbasis \textit{Dense Prediction Transformer} (DPT) yang mampu menghasilkan peta kedalaman (\textit{depth map}) yang detail dan tahan terhadap variasi tekstur. Namun, model ini secara inheren menghasilkan kedalaman relatif (up-to-scale) yang tidak memiliki satuan metrik.
+Untuk mendapatkan informasi 3D dari citra 2D, kami menggunakan \textbf{DepthAnything V2} \cite{depthanything2024}, sebuah model berbasis \textit{Dense Prediction Transformer} (DPT) yang mampu menghasilkan peta kedalaman (\textit{depth map}) yang detail dan tahan terhadap variasi tekstur. Namun, model ini secara inheren menghasilkan kedalaman relatif (\textit{up-to-scale}) yang tidak memiliki satuan metrik \cite{florea2025}.
 
-Untuk mengatasi masalah ambiguitas skala ini, kami mengajukan metode \textit{Height-Based Scale Recovery}. Dengan asumsi area jalan di depan kendaraan adalah bidang datar, kami memanfaatkan tinggi pemasangan kamera ($H_{cam}$) yang diketahui sebagai referensi geometris. Faktor skala $S$ dihitung secara dinamis:
+Untuk mengatasi masalah ambiguitas skala ini, kami mengajukan metode \textit{Height-Based Scale Recovery}. Dengan asumsi area jalan di depan kendaraan adalah bidang datar (\textit{flat ground assumption}), kami memanfaatkan tinggi pemasangan kamera ($H_{cam}$) yang diketahui sebagai referensi geometris. Faktor skala $S$ dihitung secara dinamis dengan membandingkan jarak absolut teoretis ke permukaan jalan dengan prediksi kedalaman relatif model pada \textit{Region of Interest} (ROI) jalan yang aman.
 
 \begin{equation}
 S = \frac{d_{abs\_road}}{d_{rel\_road}} = \frac{H_{cam} / \sin(\theta)}{Median(D_{rel}[ROI_{road}])}
@@ -28,30 +54,76 @@ S = \frac{d_{abs\_road}}{d_{rel\_road}} = \frac{H_{cam} / \sin(\theta)}{Median(D
 dimana $\theta$ adalah sudut \textit{pitch} kamera, dan $D_{rel}[ROI_{road}]$ adalah nilai kedalaman relatif pada area jalan di bagian bawah \textit{frame}. Peta kedalaman absolut kemudian diperoleh dengan $D_{abs} = S \times D_{rel}$.
 
 \subsection{Pengukuran Dimensi Lubang dengan Statistik Robust}
-Pengukuran dimensi fisik (diameter dan kedalaman) dilakukan dengan menerapkan teknik statistik yang tahan (\textit{robust}) terhadap \textit{noise} pada peta kedalaman.
+Peta kedalaman yang dihasilkan oleh model monokuler seringkali mengandung \textit{noise} dan anomali, terutama pada area transisi atau objek dengan tekstur kompleks. Untuk memastikan pengukuran dimensi lubang yang akurat dan andal, kami mengadopsi pendekatan statistik robust. Metode ini dirancang untuk meminimalkan dampak \textit{outlier} dan variasi data yang tidak diinginkan, sehingga menghasilkan estimasi yang lebih stabil dan representatif.
+
+Secara spesifik, pengukuran diameter lubang didasarkan pada analisis \textit{segmentation mask} yang dihasilkan oleh YOLOv8n-seg. Dari mask ini, dimensi spasial seperti panjang dan lebar maksimum dapat diekstraksi, atau bahkan fitting elips untuk mendapatkan sumbu mayor dan minor. Sementara itu, estimasi kedalaman lubang memanfaatkan nilai median dari distribusi kedalaman piksel dalam area yang relevan, yang secara efektif mereduksi pengaruh \textit{noise} dan memastikan bahwa kedalaman yang dilaporkan mencerminkan kondisi sebenarnya dari lubang. Penerapan teknik pemfilteran temporal dan statistik robust semacam ini telah terbukti efektif dalam meningkatkan ketahanan pengukuran kedalaman monokuler terhadap inkonsistensi frame-to-frame \cite{wang2025}.
+
+Secara matematis, estimasi diameter ($D$) dan kedalaman efektif ($H$) diformulasikan sebagai berikut:
+
+\begin{equation}
+D = \frac{L_{major} \times \bar{Z}_{local}}{f_x}, \quad H = \tilde{Z}_{surface} - P_{10}(\{z \in \Omega_{roi} \mid Q_1 - 1.5 \text{IQR} \le z \le Q_3 + 1.5 \text{IQR}\})
+\end{equation}
+
+dimana $L_{major}$ adalah sumbu mayor dari elips yang di-fitting pada mask lubang, $\bar{Z}_{local}$ adalah kedalaman rata-rata lokal, $f_x$ adalah panjang fokus kamera. Untuk kedalaman, $\tilde{Z}_{surface}$ adalah median kedalaman permukaan jalan, dan dasar lubang ditentukan oleh persentil ke-10 ($P_{10}$) dari set kedalaman ROI ($\Omega_{roi}$) yang telah dibersihkan dari \textit{outlier} menggunakan metode \textit{Interquartile Range} (IQR).
+
 
 \subsubsection{Estimasi Kedalaman Lubang}
-Kedalaman lubang ($d_{pothole}$) didefinisikan sebagai selisih jarak antara permukaan jalan ($Z_{surface}$) dan dasar lubang ($Z_{base}$).
+Kedalaman lubang ($d_{pothole}$) secara formal didefinisikan sebagai selisih jarak ortogonal antara bidang permukaan jalan rata-rata ($Z_{surface}$) dan taksiran dasar lubang ($Z_{base}$). Mengingat sifat \textit{noisy} dari estimasi kedalaman monokuler, pendekatan statistik digunakan untuk kedua variabel:
+
+\begin{equation}
+d_{pothole} = Z_{surface} - Z_{base}
+\end{equation}
+
 \begin{itemize}
-    \item \textbf{Permukaan Jalan ($Z_{surface}$):} Dihitung sebagai median dari nilai kedalaman pada area \textit{border} (pita selebar 10 piksel) di sekeliling mask/bounding box lubang. Penggunaan median meminimalkan pengaruh \textit{outlier} dari objek sekitar.
-    \item \textbf{Dasar Lubang ($Z_{base}$):} Dihitung dari area dalam (\textit{Region of Interest}) lubang. Kami menerapkan filter IQR (\textit{Interquartile Range}) untuk membuang \textit{outlier} ekstrem, kemudian mengambil persentil ke-10 dari distribusi kedalaman tersisa. Hal ini memastikan pengukuran merepresentasikan titik terdalam yang signifikan namun bukan \textit{noise} sensor.
+    \item \textbf{Permukaan Jalan ($Z_{surface}$):} Dihitung menggunakan estimator robust median pada himpunan piksel dalam area \textit{border} ($\Omega_{border}$) selebar 10 piksel yang mengelilingi mask deteksi. Teknik ini, yang disarankan oleh Zhang et al. \cite{zhang2020} untuk rekonstruksi permukaan jalan, efektif mengeliminasi anomali topologi lokal.
+    \begin{equation}
+    Z_{surface} = \text{Median}(\{D(p) \mid p \in \Omega_{border}\})
+    \end{equation}
+    
+    \item \textbf{Dasar Lubang ($Z_{base}$):} Ditentukan dari \textit{Region of Interest} ($\Omega_{roi}$) lubang. Alih-alih menggunakan nilai minimum yang rentan terhadap \textit{noise} sensor, kami menerapkan filter statistik dua tahap. Distribusi kedalaman disaring menggunakan \textit{Interquartile Range} (IQR) untuk menghapus \textit{outlier}, diikuti dengan pengambilan persentil ke-10 ($P_{10}$). Metode ini memberikan estimasi dasar yang konservatif namun akurat, seperti yang divalidasi dalam studi inspeksi infrastruktur oleh Bentzer \cite{bentzer2025}.
+    \begin{equation}
+    Z_{base} = P_{10}\left(\left\{z \in \Omega_{roi} \mid Q_1 - 1.5\text{IQR} \leq z \leq Q_3 + 1.5\text{IQR}\right\}\right)
+    \end{equation}
 \end{itemize}
 
 \subsubsection{Estimasi Diameter}
-Jika \textit{segmentation mask} tersedia, kami melakukan \textit{ellipse fitting} pada kontur mask untuk mendapatkan sumbu mayor ($px_{major}$). Konversi ke satuan metrik (cm) dilakukan menggunakan prinsip proyeksi kamera:
+Estimasi diameter ($D$) dilakukan dengan memanfaatkan \textit{segmentation mask} yang dihasilkan oleh YOLOv8. Untuk mendapatkan representasi bentuk yang akurat, kami menerapkan algoritma \textit{ellipse fitting} berbasis \textit{Least Squares} pada kontur mask, yang menghasilkan sumbu mayor piksel ($L_{px}$). Metode ini lebih unggul dibandingkan penggunaan \textit{bounding box} sederhana karena mampu mengikuti orientasi dan bentuk ireguler lubang jalan \cite{singh2021}.
+
+Jika mask tidak tersedia, sistem secara otomatis beralih menggunakan lebar \textit{bounding box} ($w_{bbox}$) sebagai estimasi konservatif. Konversi dari satuan piksel ke satuan metrik (cm) dilakukan menggunakan prinsip proyeksi perspektif kamera \textit{pinhole}:
 
 \begin{equation}
-Diameter (cm) = \frac{px_{major} \times Z_{avg} \times 100}{f_x}
+D_{cm} = \frac{L_{px} \times Z_{avg} \times 100}{f_x}
 \end{equation}
 
-dimana $Z_{avg} = (Z_{surface} + Z_{base}) / 2$ adalah jarak rata-rata ke objek, dan $f_x$ adalah panjang fokus kamera dalam piksel.
+dimana $Z_{avg} = (Z_{surface} + Z_{base}) / 2$ merepresentasikan jarak rata-rata kamera ke lubang, dan $f_x$ adalah panjang fokus kamera dalam piksel yang diperoleh dari kalibrasi intrinsik.
+
 
 \subsection{Pelacakan Objek dan Filter Temporal}
-Untuk menstabilkan pengukuran yang fluktuatif antar-\textit{frame} akibat getaran kendaraan atau \textit{noise} model, kami mengintegrasikan pelacakan dan pemfilteran temporal.
+Untuk menstabilkan pengukuran yang fluktuatif antar-\textit{frame} akibat getaran kendaraan atau \textit{noise} model, kami mengintegrasikan mekanisme pelacakan (\textit{tracking}) yang kuat. Kami mengimplementasikan varian dari \textbf{BoT-SORT} yang memanfaatkan \textit{Intersection over Union} (IoU) dan konsistensi gerakan untuk memelihara identitas unik lubang jalan sepanjang rangkaian video \cite{aharon2022}. Teknik ini memungkinkan sistem untuk menolak deteksi palsu sesaat dan menangani oklusi parsial.
 
-\textbf{BoT-SORT Tracker} digunakan untuk memelihara identitas unik setiap lubang antawaktu. Tracker ini menggabungkan informasi posisi dan fitur visual (Re-ID) untuk mengatasi oklusi sementara.
+Setiap lintasan (\textit{track}) yang valid dilengkapi dengan \textbf{Confidence and Distance Kalman Filter (CDKF)}, sebuah modifikasi dari filter Kalman linear standar yang dirancang untuk menangani ketidakpastian dinamis pada persepsi kedalaman monokuler. Vektor keadaan (\textit{state vector}) sistem pada langkah waktu $k$ didefinisikan sebagai $x_k = [D_k, H_k, \dot{D}_k, \dot{H}_k]^T$, yang mencakup estimasi diameter, kedalaman, serta laju perubahannya (kecepatan). Proses evolusi sistem dimodelkan dengan asumsi kecepatan konstan (\textit{constant velocity model}):
 
-Setiap lintasan (\textit{track}) lubang dilengkapi dengan \textbf{Kalman Filter} khusus untuk pengukuran. Vektor state didefinisikan sebagai $x = [d, h, \dot{d}, \dot{h}]^T$, yang mencakup diameter ($d$), kedalaman ($h$), dan kecepatan perubahannya. Model ini memprediksi dan memperbarui estimasi ukuran berdasarkan pengukuran baru, menghasilkan kurva pengukuran yang halus dan konsisten seiring waktu.
+\begin{equation}
+x_{k|k-1} = F x_{k-1|k-1}, \quad F = \begin{bmatrix} 1 & 0 & \Delta t & 0 \\ 0 & 1 & 0 & \Delta t \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}
+\end{equation}
+
+Kontribusi utama CDKF terletak pada penanganan adaptif terhadap \textit{measurement noise covariance} ($R_k$). Berbeda dengan Kalman Filter standar yang menganggap $R$ konstan, kami memodelkan tingkat kepercayaan pengukuran secara dinamis sebagai fungsi dari skor keyakinan deteksi ($c_k$) dan jarak rata-rata objek ke kamera ($z_k$). Logika ini didasarkan pada karakteristik visi komputer dimana ketelitian menurun seiring bertambahnya jarak dan menurunnya kualitas deteksi:
+
+\begin{equation}
+R_k = \frac{\lambda}{c_k} + \theta \cdot \max(z_k, d_0) \cdot I
+\end{equation}
+
+dimana $\lambda$ dan $\theta$ adalah konstanta tuning yang mengatur sensitivitas terhadap kepercayaan dan jarak, $d_0$ adalah ambang batas jarak minimum, dan $I$ adalah matriks identitas $2 \times 2$. Dengan mekanisme ini, filter secara otomatis memberi bobot lebih rendah pada pengukuran yang jauh atau tidak pasti, secara efektif menghaluskan fluktuasi pengukuran ($\dot{D}, \dot{H}$) dan menghasilkan estimasi dimensi akhir yang lebih stabil \cite{rahman2025}.
 
 \subsection{Arsitektur Sistem Real-time}
-Seluruh komponen diintegrasikan ke dalam \textit{pipeline} pemrosesan \textit{end-to-end} yang dirancang untuk berjalan pada perangkat keras terbatas. Sistem membaca \textit{stream} video, memproses deteksi dan pengukuran secara asinkron, dan akhirnya mengemas hasil deteksi yang valid (dengan kepercayaan tinggi yang telah dikonfirmasi oleh tracker) ke dalam format JSON. Data ini dikirimkan melalui protokol HTTP REST API ke \textit{dashboard} pemantauan pusat, disertai dengan bukti visual berupa gambar yang telah di-\textit{crop}.
+Untuk menjamin kinerja operasional yang responsif, seluruh komponen pemrosesan diintegrasikan ke dalam arsitektur layanan mikro berbasis \textbf{FastAPI}. Kerangka kerja ini dipilih karena kecepatan eksekusinya yang setara dengan NodeJS dan Go, serta dukungan native untuk konkurensi asinkron (`async/await`).
+
+Dalam implementasinya, sistem memisahkan \textit{pipeline} inferensi berat (YOLOv8 dan DepthAnything) dari lapisan komunikasi jaringan menggunakan \textit{BackgroundTasks}. Alur kerjanya adalah sebagai berikut:
+\begin{enumerate}
+    \item \textbf{Ingestion:} Stream video atau gambar diakuisisi dan dimasukkan ke dalam antrian pemrosesan non-blocking.
+    \item \textbf{Async Inference:} Worker asinkron menjalankan deteksi, estimasi kedalaman, dan pelacakan secara paralel.
+    \item \textbf{Serialization:} Hasil pengukuran yang valid (terkonfirmasi oleh CDKF) divalidasi dan diserialisasi secara otomatis menggunakan skema \textbf{Pydantic} ke dalam format JSON yang terstruktur.
+    \item \textbf{Transmission:} Payload data, lengkap dengan metadata geospasial dan bukti visual (gambar yang di-\textit{crop} dan dikompresi), dikirimkan melalui endpoint REST API standar ke dasbor pemantauan pusat.
+\end{enumerate}
+
+Pendekatan ini meminimalkan latensi sistem dan mencegah \textit{bottleneck} I/O, memungkinkan pemantauan infrastruktur jalan yang efisien dan berskala.
