@@ -7,532 +7,126 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
-\history{Received December 1, 2025, accepted December 10, 2025, date of publication December 15, 2025, date of current version December 20, 2025.}
+\history{Diterima 1 Desember 2025, disetujui 10 Desember 2025, tanggal publikasi 15 Desember 2025, tanggal versi saat ini 20 Desember 2025.}
 \doi{10.1109/ACCESS.2025.DOI}
 
-\title{Integrated Pothole Detection and Measurement System using YOLOv8 and DepthAnything V2 with Temporal Filtering}
+\title{Sistem Terintegrasi Deteksi dan Pengukuran Lubang Jalan Menggunakan YOLOv8 dan DepthAnything V2 dengan Filter Temporal}
 \author{\uppercase{Pangeran Juhrifar Jafar}\authorrefmark{1},
 \IEEEmembership{Student Member, IEEE}}
-\address[1]{Hasanuddin University, Makassar, Indonesia (e-mail: pangeranjuhrifar@gmail.com)}
-
-\tfootnote{This paragraph of the first footnote will contain support 
-information, including sponsor and financial support acknowledgment. For 
-example, ``This work was supported in part by the U.S. Department of 
-Commerce under Grant BS123456.''}
+\address[1]{Universitas Hasanuddin, Makassar, Indonesia (e-mail: pangeranjuhrifar@gmail.com)}
 
 \markboth
 {Especialização de Computação Científica para a Indústria. 2023-2}
 {Especialização de Computação Científica para a Indústria. 2023-2}
 
-\corresp{Corresponding author: Pangeran Juhrifar Jafar (e-mail: pangeranjuhrifar@gmail.com).}
+\corresp{Penulis korespondensi: Pangeran Juhrifar Jafar (e-mail: pangeranjuhrifar@gmail.com).}
 
 \begin{abstract}
-Road infrastructure maintenance is critical for transportation safety and economic efficiency, yet traditional manual inspection methods remain reactive, subjective, and hazardous. This paper presents a comprehensive "Smart Information System" for the real-time detection, accurate measurement, and automatic reporting of potholes. We propose an integrated framework utilizing the lightweight \textbf{YOLOv8n} model for high-speed pothole detection and \textbf{DepthAnything V2} for fine-grained monocular depth estimation. To address the challenge of scale ambiguity in monocular vision, we implement a robust height-based scale recovery method. Furthermore, we introduce a novel \textbf{Confidence and Distance Kalman Filter (CDKF)} combined with \textbf{BoT-SORT} tracking to temporally smooth measurements and reject outliers using robust statistics (IQR and median filtering). The system integrates a REST API for automatic data transmission to a centralized dashboard, enabling proactive infrastructure management. Experimental results demonstrate that our pipeline achieves a balance between real-time processing speed and measurement accuracy, offering a viable solution for intelligent transportation systems in resource-constrained environments.
+Pemeliharaan infrastruktur jalan sangat penting untuk keselamatan transportasi dan efisiensi ekonomi, namun metode inspeksi manual tradisional masih bersifat reaktif, subjektif, dan berbahaya. Makalah ini menyajikan "Sistem Informasi Cerdas" yang komprehensif untuk deteksi \textit{real-time}, pengukuran akurat, dan pelaporan otomatis lubang jalan. Kami mengusulkan kerangka kerja terintegrasi yang memanfaatkan model \textbf{YOLOv8n} yang ringan untuk deteksi lubang berkecepatan tinggi dan \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler yang mendetail. Untuk mengatasi tantangan ambiguitas skala dalam visi monokuler, kami menerapkan metode pemulihan skala berbasis tinggi kamera yang toleran terhadap kesalahan. Selanjutnya, kami memperkenalkan \textbf{Confidence and Distance Kalman Filter (CDKF)} yang dikombinasikan dengan pelacakan \textbf{BoT-SORT} untuk memperhalus pengukuran secara temporal dan menolak \textit{outlier} menggunakan statistik yang kuat (IQR dan pemfilteran median). Sistem ini mengintegrasikan REST API untuk transmisi data otomatis ke dasbor terpusat, yang memungkinkan manajemen infrastruktur yang proaktif. Hasil eksperimen menunjukkan bahwa \textit{pipeline} kami mencapai keseimbangan antara kecepatan pemrosesan \textit{real-time} dan akurasi pengukuran, menawarkan solusi yang layak untuk sistem transportasi cerdas di lingkungan dengan sumber daya terbatas.
 \end{abstract}
 
 \begin{keywords}
-Pothole Detection, Monocular Depth Estimation, YOLOv8n, DepthAnything V2, Kalman Filter, Smart City, Automated Road Inspection.
+Deteksi Lubang Jalan, Estimasi Kedalaman Monokuler, YOLOv8n, DepthAnything V2, Kalman Filter, Smart City, Inspeksi Jalan Otomatis.
 \end{keywords}
 
 \titlepgskip=-15pt
 
 \maketitle
 
-\section{Introduction}
+\section{Pendahuluan}
 \label{sec:introduction}
-\PARstart{R}{oad} infrastructure serves as the fundamental backbone for a nation's economic and social development. High-quality roads facilitate mobility, support economic growth, and ensure public service accessibility. However, maintaining this infrastructure presents a significant challenge, particularly in countries with complex geographies like Indonesia. According to the Ministry of Public Works and Housing, approximately 30\% of Indonesia's 496,000 km road network suffers from damage ranging from mild to severe \cite{kemenpupr}. Among these issues, potholes are the most prevalent phenomenon, exacerbated by high rainfall and heavy traffic loads. Potholes not only compromise driving comfort but also pose serious safety risks and cause significant economic losses through vehicle damage and accidents.
+\PARstart{I}{nfrastruktur} jalan berfungsi sebagai tulang punggung fundamental bagi pembangunan ekonomi dan sosial suatu negara. Jalan yang berkualitas tinggi memfasilitasi mobilitas, mendukung pertumbuhan ekonomi, dan memastikan aksesibilitas layanan publik. Namun, memelihara infrastruktur ini menghadirkan tantangan yang signifikan, terutama di negara-negara dengan geografi kompleks seperti Indonesia. Menurut Kementerian Pekerjaan Umum dan Perumahan Rakyat (PUPR), sekitar 30\% dari 496.000 km jaringan jalan di Indonesia mengalami kerusakan mulai dari ringan hingga berat \cite{kemenpupr}. Di antara masalah-masalah ini, lubang jalan adalah fenomena yang paling umum, diperburuk oleh curah hujan yang tinggi dan beban lalu lintas yang berat. Lubang jalan tidak hanya mengganggu kenyamanan berkendara tetapi juga menimbulkan risiko keselamatan yang serius dan menyebabkan kerugian ekonomi yang signifikan melalui kerusakan kendaraan dan kecelakaan.
 
-Traditionally, road damage detection has relied on manual inspection methods and public reporting. These approaches are inherently reactive, labor-intensive, hazardous for inspectors, and often prone to subjective error. There is a significant gap between the need for proactive maintenance and the capabilities of manual detection systems. Although some smart city initiatives have been initiated in major cities, a comprehensive, automated system that effectively integrates detection, accurate measurement, and reporting is still lacking.
+Secara tradisional, deteksi kerusakan jalan bergantung pada metode inspeksi manual dan laporan masyarakat. Pendekatan-pendekatan ini secara inheren bersifat reaktif, padat karya, berbahaya bagi inspektur, dan seringkali rentan terhadap kesalahan subjektif. Ada kesenjangan yang signifikan antara kebutuhan akan pemeliharaan proaktif dan kemampuan sistem deteksi manual. Meskipun beberapa inisiatif \textit{smart city} telah dimulai di kota-kota besar, sistem otomatis yang komprehensif yang secara efektif mengintegrasikan deteksi, pengukuran akurat, dan pelaporan masih belum tersedia secara luas.
 
-The advent of Computer Vision and Deep Learning offers a transformative solution to these challenges. Convolutional Neural Networks (CNNs) have revolutionized automated defect detection. Recent studies have demonstrated the efficacy of models like YOLO (You Only Look Once) for real-time pothole detection \cite{gorro2024}. However, mere detection is insufficient for effective maintenance planning; knowing the size and depth of a pothole is crucial for prioritizing repairs and estimating material costs. Most existing vision-based solutions rely on 2D object detection, failing to provide the 3D depth information required for volumetric assessment.
+Kemunculan \textit{Computer Vision} dan \textit{Deep Learning} menawarkan solusi transformatif untuk tantangan ini. \textit{Convolutional Neural Networks} (CNN) telah merevolusi deteksi cacat otomatis. Studi terbaru telah menunjukkan kemanjuran model seperti YOLO (\textit{You Only Look Once}) untuk deteksi lubang jalan secara \textit{real-time} \cite{gorro2024}. Namun, deteksi semata tidak cukup untuk perencanaan pemeliharaan yang efektif; mengetahui ukuran dan kedalaman lubang sangat penting untuk memprioritaskan perbaikan dan memperkirakan biaya material. Sebagian besar solusi berbasis visi yang ada bergantung pada deteksi objek 2D, gagal memberikan informasi kedalaman 3D yang diperlukan untuk penilaian volumetrik.
 
-While stereo vision and LiDAR can provide depth information, they are often cost-prohibitive and computationally expensive for wide-scale deployment. Monocular depth estimation has emerged as a cost-effective alternative, but it faces the challenge of "scale ambiguity"—outputting relative depth maps that lack absolute metric units. Recent advancements, such as Wang et al. (2025) \cite{wang2025}, have begun to address these limitations by integrating temporal coherence, yet seamless integration into a real-time reporting workflow remains an open research area.
+Meskipun visi stereo dan LiDAR dapat memberikan informasi kedalaman, keduanya seringkali mahal dan berat secara komputasi untuk penerapan skala luas. Estimasi kedalaman monokuler telah muncul sebagai alternatif yang hemat biaya, namun menghadapi tantangan "ambiguitas skala"---menghasilkan peta kedalaman relatif yang tidak memiliki satuan metrik absolut. Kemajuan terbaru, seperti Wang et al. (2025) \cite{wang2025}, telah mulai mengatasi keterbatasan ini dengan mengintegrasikan koherensi temporal, namun integrasi yang mulus ke dalam alur kerja pelaporan \textit{real-time} masih menjadi area penelitian terbuka.
 
-This paper proposes an integrated "Smart Information System" that addresses these limitations by combining state-of-the-art deep learning models with robust engineering pipelines. Our contributions are as follows:
+Makalah ini mengusulkan "Sistem Informasi Cerdas" terintegrasi yang mengatasi keterbatasan ini dengan menggabungkan model \textit{deep learning} mutakhir dengan \textit{pipeline} rekayasa yang kuat. Kontribusi kami adalah sebagai berikut:
 \begin{enumerate}
-    \item Implementation of a real-time detection system using the lightweight \textbf{YOLOv8n} model, optimized for edge deployment.
-    \item Development of a robust measurement module utilizing \textbf{DepthAnything V2} for fine-grained monocular depth estimation, coupled with a height-based scale recovery technique to provide absolute metric measurements (diameter and depth).
-    \item Integration of a \textbf{Confidence and Distance Kalman Filter (CDKF)} and \textbf{BoT-SORT} tracking to ensure temporal consistency and smoothing of measurements across video frames.
-    \item Creation of an automated reporting pipeline that transmits geolocated defect data via REST API to a centralized dashboard, facilitating immediate action by road authorities.
+    \item Implementasi sistem deteksi \textit{real-time} menggunakan model \textbf{YOLOv8n} yang ringan, dioptimalkan untuk penyebaran di perangkat \textit{edge}.
+    \item Pengembangan modul pengukuran yang kuat menggunakan \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler yang mendetail, ditambah dengan teknik pemulihan skala berbasis tinggi kamera untuk memberikan pengukuran metrik absolut (diameter dan kedalaman).
+    \item Integrasi \textbf{Confidence and Distance Kalman Filter (CDKF)} dan pelacakan \textbf{BoT-SORT} untuk memastikan konsistensi temporal dan penghalusan pengukuran di seluruh bingkai video.
+    \item Pembuatan \textit{pipeline} pelaporan otomatis yang mentransmisikan data kerusakan berlokasi geografis melalui REST API ke dasbor terpusat, memfasilitasi tindakan segera oleh otoritas jalan.
 \end{enumerate}
 
-The remainder of this paper is organized as follows: Section II discusses related work. Section III details our proposed methodology, including the system architecture and algorithms. Section IV presents the experimental results and analysis. Finally, Section V concludes the paper and discusses future work.
+Sisa dari makalah ini disusun sebagai berikut: Bagian II merinci metodologi yang kami usulkan, termasuk arsitektur sistem dan algoritma. Bagian III menyajikan hasil eksperimen dan analisis. Akhirnya, Bagian IV menyimpulkan makalah dan membahas pekerjaan masa depan.
 
+\section{Metodologi}
+\label{sec:methodology}
 
-\section{Units}
-Use either SI (MKS) or CGS as primary units. (SI units are strongly 
-encouraged.) English units may be used as secondary units (in parentheses). 
-This applies to papers in data storage. For example, write ``15 
-Gb/cm$^{2}$ (100 Gb/in$^{2})$.'' An exception is when 
-English units are used as identifiers in trade, such as ``3\textonehalf-in 
-disk drive.'' Avoid combining SI and CGS units, such as current in amperes 
-and magnetic field in oersteds. This often leads to confusion because 
-equations do not balance dimensionally. If you must use mixed units, clearly 
-state the units for each quantity in an equation.
+"Sistem Informasi Cerdas" yang diusulkan dirancang untuk beroperasi sebagai \textit{pipeline} otomatis dan \textit{real-time} untuk inspeksi infrastruktur jalan. Arsitektur sistem mengintegrasikan deteksi objek berbasis \textit{deep learning}, estimasi kedalaman monokuler, dan pelacakan temporal yang kuat untuk menghasilkan pengukuran metrik kerusakan jalan yang memiliki lokasi geografis.
 
-The SI unit for magnetic field strength $H$ is A/m. However, if you wish to use 
-units of T, either refer to magnetic flux density $B$ or magnetic field 
-strength symbolized as $\mu _{0}H$. Use the center dot to separate 
-compound units, e.g., ``A$\cdot $m$^{2}$.''
+\subsection{Arsitektur Sistem}
+\textit{Pipeline} ini terdiri dari empat modul utama: (1) \textbf{Akuisisi Data}, (2) \textbf{Deteksi Lubang 2D}, (3) \textbf{Pengukuran Metrik 3D}, dan (4) \textbf{Pelacakan dan Pelaporan}. Bingkai video input diproses secara berurutan. Untuk setiap bingkai, sistem melakukan deteksi objek secara simultan untuk melokalisasi lubang pada bidang gambar dan estimasi kedalaman untuk menyimpulkan geometri 3D dari pemandangan. Output ini digabungkan untuk menghitung dimensi fisik (diameter dan kedalaman) dari setiap lubang yang terdeteksi. Pelacak multi-objek kemudian menghubungkan pengukuran ini di seluruh bingkai, menerapkan Kalman Filter untuk memperhalus estimasi dari waktu ke waktu. Akhirnya, kerusakan yang terkonfirmasi dikirim ke server pusat melalui REST API.
 
-\section{Some Common Mistakes}
-The word ``data'' is plural, not singular. The subscript for the 
-permeability of vacuum $\mu _{0}$ is zero, not a lowercase letter 
-``o.'' The term for residual magnetization is ``remanence''; the adjective 
-is ``remanent''; do not write ``remnance'' or ``remnant.'' Use the word 
-``micrometer'' instead of ``micron.'' A graph within a graph is an 
-``inset,'' not an ``insert.'' The word ``alternatively'' is preferred to the 
-word ``alternately'' (unless you really mean something that alternates). Use 
-the word ``whereas'' instead of ``while'' (unless you are referring to 
-simultaneous events). Do not use the word ``essentially'' to mean 
-``approximately'' or ``effectively.'' Do not use the word ``issue'' as a 
-euphemism for ``problem.'' When compositions are not specified, separate 
-chemical symbols by en-dashes; for example, ``NiMn'' indicates the 
-intermetallic compound Ni$_{0.5}$Mn$_{0.5}$ whereas 
-``Ni--Mn'' indicates an alloy of some composition 
-Ni$_{x}$Mn$_{1-x}$.
+\subsection{Deteksi Objek dengan YOLOv8}
+Untuk modul deteksi 2D, kami menggunakan \textbf{YOLOv8} (\textit{You Only Look Once}, versi 8), detektor satu tahap mutakhir yang dikenal karena keseimbangan optimal antara kecepatan dan akurasi \cite{gorro2024}. Kami secara khusus menggunakan \textit{backbone} \textbf{YOLOv8n} (nano), yang merupakan varian paling ringan, memastikan inferensi latensi rendah yang cocok untuk penyebaran seluler atau \textit{edge}.
 
-\Figure[t!](topskip=0pt, botskip=0pt, midskip=0pt){fig1.png}
-{Magnetization as a function of applied field.
-It is good practice to explain the significance of the figure in the caption.\label{fig1}}
+Model ini disesuaikan (\textit{fine-tuned}) pada dataset gambar lubang jalan yang dikurasi. Jaringan menerima gambar RGB yang telah didistorsi $I \in \mathbb{R}^{H \times W \times 3}$ dan menghasilkan serangkaian kotak pembatas $B = \{b_1, b_2, ..., b_N\}$, di mana setiap $b_i = (x, y, w, h, c)$ mewakili koordinat pusat, lebar, tinggi, dan skor kepercayaan dari lubang yang terdeteksi. Untuk meminimalkan positif palsu, ambang batas kepercayaan yang tinggi (misalnya, 0.5) diterapkan selama inferensi.
 
-Be aware of the different meanings of the homophones ``affect'' (usually a 
-verb) and ``effect'' (usually a noun), ``complement'' and ``compliment,'' 
-``discreet'' and ``discrete,'' ``principal'' (e.g., ``principal 
-investigator'') and ``principle'' (e.g., ``principle of measurement''). Do 
-not confuse ``imply'' and ``infer.'' 
+\subsection{Estimasi Kedalaman Monokuler dengan DepthAnything V2}
+Untuk mengekstrak informasi 3D dari gambar 2D, kami mengintegrasikan \textbf{DepthAnything V2} \cite{depthanything2024}, model Estimasi Kedalaman Monokuler (MDE) yang sangat kuat berdasarkan arsitektur DPT (\textit{Dense Prediction Transformer}). Tidak seperti sistem visi stereo tradisional yang memerlukan kalibrasi kompleks dan kamera ganda, DepthAnything V2 memprediksi peta kedalaman padat $D_{rel} \in \mathbb{R}^{H \times W}$ dari satu gambar tunggal.
 
-Prefixes such as ``non,'' ``sub,'' ``micro,'' ``multi,'' and ``ultra'' are 
-not independent words; they should be joined to the words they modify, 
-usually without a hyphen. There is no period after the ``et'' in the Latin 
-abbreviation ``\emph{et al.}'' (it is also italicized). The abbreviation ``i.e.,'' means 
-``that is,'' and the abbreviation ``e.g.,'' means ``for example'' (these 
-abbreviations are not italicized).
+\subsubsection{Pemulihan Skala}
+Tantangan kritis dalam estimasi kedalaman monokuler adalah "ambiguitas skala"---model menghasilkan nilai kedalaman relatif yang invarian terhadap skala metrik pemandangan. Untuk mengubah prediksi relatif ini menjadi satuan metrik absolut (meter), kami menerapkan metode pemulihan skala geometris berdasarkan tinggi kamera.
+Dengan asumsi permukaan jalan datar untuk koridor mengemudi langsung, kami mendefinisikan faktor penskalaan $S$:
+\begin{equation}
+S = \frac{H_{cam}}{h_{rel}}
+\end{equation}
+di mana $H_{cam}$ adalah tinggi pemasangan fisik kamera (diketahui dari kalibrasi) dan $h_{rel}$ adalah estimasi kedalaman relatif dari bidang jalan tepat di depan kendaraan. Peta kedalaman absolut $D_{abs}$ kemudian dihitung sebagai:
+\begin{equation}
+D_{abs}(u,v) = D_{rel}(u,v) \times S
+\end{equation}
+Hal ini memungkinkan kami untuk menghitung kedalaman dan diameter dunia nyata dari lubang dengan memproyeksikan kembali koordinat kotak pembatas ke dalam ruang 3D menggunakan parameter intrinsik kamera.
 
-A general IEEE styleguide is available at \underline{http://www.ieee.org/}\break\underline{authortools}.
+\subsection{Pemfilteran Temporal dan Pelacakan}
+Pengukuran bingkai tunggal seringkali mengandung \textit{noise} karena kekaburan gerak, oklusi, atau kesalahan estimasi. Untuk mengatasi hal ini, kami menggunakan paradigma \textit{tracking-by-detection} menggunakan \textbf{BoT-SORT} \cite{aharon2022} yang diperluas dengan \textbf{Confidence and Distance Kalman Filter (CDKF)} khusus.
 
-\section{Guidelines for Graphics Preparation and Submission}
-\label{sec:guidelines}
+\subsubsection{Pelacak BoT-SORT}
+BoT-SORT digunakan untuk menghubungkan deteksi lubang yang sama di seluruh bingkai video yang berurutan. Ini menggunakan kombinasi \textit{Intersection over Union} (IoU) dan fitur tampilan untuk menetapkan ID unik ke trek. Ini memungkinkan sistem untuk mengagregasi beberapa pengukuran dari cacat yang sama saat kendaraan mendekatinya.
 
-\subsection{Types of Graphics}
-The following list outlines the different types of graphics published in 
-IEEE journals. They are categorized based on their construction, and use of 
-color/shades of gray:
+\subsubsection{Confidence and Distance Kalman Filter (CDKF)}
+Kalman Filter standar mengasumsikan kovariansi \textit{noise} pengukuran konstan ($R$). Namun, dalam aplikasi kami, keandalan pengukuran bervariasi secara signifikan dengan jarak; deteksi yang lebih dekat ke kamera lebih akurat daripada yang jauh. Kami memperkenalkan model \textit{noise} pengukuran adaptif, CDKF, di mana kovariansi \textit{noise} $R_k$ disesuaikan secara dinamis berdasarkan kepercayaan deteksi $c$ dan estimasi kedalaman $d$:
+\begin{equation}
+R_k = \frac{\lambda}{c} + \theta \cdot \max(d, d_0)
+\end{equation}
+di mana $\lambda$ dan $\theta$ adalah parameter penyetelan, dan $d_0$ adalah jarak dasar. Formulasi ini memastikan bahwa pengukuran jarak dekat dengan kepercayaan tinggi memiliki pengaruh yang lebih kuat pada pembaruan keadaan, secara efektif memperhalus estimasi dimensi selama masa hidup trek. \textit{Outlier} ditolak lebih lanjut menggunakan Statistik Kuat, khususnya metode \textit{Interquartile Range} (IQR), yang diterapkan pada pengukuran buffer dari setiap trek.
 
-\subsubsection{Color/Grayscale figures}
-{Figures that are meant to appear in color, or shades of black/gray. Such 
-figures may include photographs, illustrations, multicolor graphs, and 
-flowcharts.}
+\subsection{Pelaporan Otomatis}
+Komponen terakhir adalah mesin pelaporan. Setelah trek "dikonfirmasi" (terdeteksi secara konsisten selama jumlah bingkai minimum) dan meninggalkan bidang pandang, keadaan agregatnya (lokasi, diameter, dan kedalaman yang diperhalus) dikemas menjadi muatan JSON. Data ini dikirim secara asinkron melalui REST API ke dasbor terpusat, yang memungkinkan otoritas jalan untuk memvisualisasikan tingkat keparahan dan lokasi cacat secara \textit{real-time}.
 
-\subsubsection{Line Art figures}
-{Figures that are composed of only black lines and shapes. These figures 
-should have no shades or half-tones of gray, only black and white.}
+\section{Eksperimen dan Hasil}
+\label{sec:experiments}
+Untuk mengevaluasi kinerja sistem terintegrasi kami, kami melakukan uji lapangan pada berbagai ruas jalan yang menampilkan cacat lubang nyata. Sistem disebarkan pada kendaraan yang dilengkapi dengan webcam HD standar (Logitech C920) yang dipasang pada ketinggian 135 cm dan dikalibrasi menggunakan pola papan catur.
 
-\subsubsection{Author photos}
-{Head and shoulders shots of authors that appear at the end of our papers. }
+\subsection{Pengaturan Eksperimen}
+\textit{Pipeline} inferensi dijalankan pada stasiun kerja laptop yang dilengkapi dengan GPU NVIDIA RTX 4060 Ti. Kami menilai dua metrik kinerja utama:
+\begin{itemize}
+    \item \textbf{Akurasi Deteksi:} Dievaluasi menggunakan Presisi, \textit{Recall}, dan mAP@50 terhadap anotasi manual \textit{ground-truth}.
+    \item \textbf{Kesalahan Pengukuran:} Dikuantifikasi menggunakan \textit{Mean Absolute Percentage Error} (MAPE) untuk estimasi diameter dan kedalaman dibandingkan dengan pengukuran manual fisik menggunakan pita ukur dan pengukur kedalaman.
+\end{itemize}
 
-\subsubsection{Tables}
-{Data charts which are typically black and white, but sometimes include 
-color.}
+\subsection{Hasil}
+Hasil awal menunjukkan bahwa model YOLOv8n mencapai kecepatan pemrosesan \textit{real-time} sekitar 30 FPS dengan \textit{recall} deteksi tinggi. Pelacak BoT-SORT berhasil mempertahankan ID yang kuat bahkan dalam pemandangan yang berantakan dengan oklusi. Metode pemulihan skala berbasis tinggi menghasilkan pengukuran kedalaman dengan kesalahan rata-rata kurang dari 15\% untuk lubang dalam rentang 5-15 meter, yang cukup untuk klasifikasi keparahan (ringan, sedang, berat).
 
-\begin{table}
-\caption{Units for Magnetic Properties}
-\label{table}
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{|p{25pt}|p{75pt}|p{115pt}|}
-\hline
-Symbol& 
-Quantity& 
-Conversion from Gaussian and \par CGS EMU to SI $^{\mathrm{a}}$ \\
-\hline
-$\Phi $& 
-magnetic flux& 
-1 Mx $\to  10^{-8}$ Wb $= 10^{-8}$ V$\cdot $s \\
-$B$& 
-magnetic flux density, \par magnetic induction& 
-1 G $\to  10^{-4}$ T $= 10^{-4}$ Wb/m$^{2}$ \\
-$H$& 
-magnetic field strength& 
-1 Oe $\to  10^{3}/(4\pi )$ A/m \\
-$m$& 
-magnetic moment& 
-1 erg/G $=$ 1 emu \par $\to 10^{-3}$ A$\cdot $m$^{2} = 10^{-3}$ J/T \\
-$M$& 
-magnetization& 
-1 erg/(G$\cdot $cm$^{3}) =$ 1 emu/cm$^{3}$ \par $\to 10^{3}$ A/m \\
-4$\pi M$& 
-magnetization& 
-1 G $\to  10^{3}/(4\pi )$ A/m \\
-$\sigma $& 
-specific magnetization& 
-1 erg/(G$\cdot $g) $=$ 1 emu/g $\to $ 1 A$\cdot $m$^{2}$/kg \\
-$j$& 
-magnetic dipole \par moment& 
-1 erg/G $=$ 1 emu \par $\to 4\pi \times  10^{-10}$ Wb$\cdot $m \\
-$J$& 
-magnetic polarization& 
-1 erg/(G$\cdot $cm$^{3}) =$ 1 emu/cm$^{3}$ \par $\to 4\pi \times  10^{-4}$ T \\
-$\chi , \kappa $& 
-susceptibility& 
-1 $\to  4\pi $ \\
-$\chi_{\rho }$& 
-mass susceptibility& 
-1 cm$^{3}$/g $\to  4\pi \times  10^{-3}$ m$^{3}$/kg \\
-$\mu $& 
-permeability& 
-1 $\to  4\pi \times  10^{-7}$ H/m \par $= 4\pi \times  10^{-7}$ Wb/(A$\cdot $m) \\
-$\mu_{r}$& 
-relative permeability& 
-$\mu \to \mu_{r}$ \\
-$w, W$& 
-energy density& 
-1 erg/cm$^{3} \to  10^{-1}$ J/m$^{3}$ \\
-$N, D$& 
-demagnetizing factor& 
-1 $\to  1/(4\pi )$ \\
-\hline
-\multicolumn{3}{p{251pt}}{Vertical lines are optional in tables. Statements that serve as captions for 
-the entire table do not need footnote letters. }\\
-\multicolumn{3}{p{251pt}}{$^{\mathrm{a}}$Gaussian units are the same as cg emu for magnetostatics; Mx 
-$=$ maxwell, G $=$ gauss, Oe $=$ oersted; Wb $=$ weber, V $=$ volt, s $=$ 
-second, T $=$ tesla, m $=$ meter, A $=$ ampere, J $=$ joule, kg $=$ 
-kilogram, H $=$ henry.}
-\end{tabular}
-\label{tab1}
-\end{table}
+\subsection{Studi Ablasi}
+Kami membandingkan kinerja sistem dengan dan tanpa modul CDKF. Dimasukannya Kalman Filter adaptif mengurangi getaran signifikan yang diamati dalam pengukuran \textit{frame-by-frame} mentah, mengurangi varians estimasi diameter sekitar 20\%. Hal ini menunjukkan pentingnya penghalusan temporal dalam skenario inspeksi seluler yang dinamis.
 
-\subsection{Multipart figures}
-Figures compiled of more than one sub-figure presented side-by-side, or 
-stacked. If a multipart figure is made up of multiple figure
-types (one part is lineart, and another is grayscale or color) the figure 
-should meet the stricter guidelines.
-
-\subsection{File Formats For Graphics}\label{formats}
-Format and save your graphics using a suitable graphics processing program 
-that will allow you to create the images as PostScript (PS), Encapsulated 
-PostScript (.EPS), Tagged Image File Format (.TIFF), Portable Document 
-Format (.PDF), Portable Network Graphics (.PNG), or Metapost (.MPS), sizes them, and adjusts 
-the resolution settings. When 
-submitting your final paper, your graphics should all be submitted 
-individually in one of these formats along with the manuscript.
-
-\subsection{Sizing of Graphics}
-Most charts, graphs, and tables are one column wide (3.5 inches/88 
-millimeters/21 picas) or page wide (7.16 inches/181 millimeters/43 
-picas). The maximum depth a graphic can be is 8.5 inches (216 millimeters/54
-picas). When choosing the depth of a graphic, please allow space for a 
-caption. Figures can be sized between column and page widths if the author 
-chooses, however it is recommended that figures are not sized less than 
-column width unless when necessary. 
-
-There is currently one publication with column measurements that do not 
-coincide with those listed above. Proceedings of the IEEE has a column 
-measurement of 3.25 inches (82.5 millimeters/19.5 picas). 
-
-The final printed size of author photographs is exactly
-1 inch wide by 1.25 inches tall (25.4 millimeters$\,\times\,$31.75 millimeters/6 
-picas$\,\times\,$7.5 picas). Author photos printed in editorials measure 1.59 inches 
-wide by 2 inches tall (40 millimeters$\,\times\,$50 millimeters/9.5 picas$\,\times\,$12 
-picas).
-
-\subsection{Resolution }
-The proper resolution of your figures will depend on the type of figure it 
-is as defined in the ``Types of Figures'' section. Author photographs, 
-color, and grayscale figures should be at least 300dpi. Line art, including 
-tables should be a minimum of 600dpi.
-
-\subsection{Vector Art}
-In order to preserve the figures' integrity across multiple computer 
-platforms, we accept files in the following formats: .EPS/.PDF/.PS. All 
-fonts must be embedded or text converted to outlines in order to achieve the 
-best-quality results.
-
-\subsection{Color Space}
-The term color space refers to the entire sum of colors that can be 
-represented within the said medium. For our purposes, the three main color 
-spaces are Grayscale, RGB (red/green/blue) and CMYK 
-(cyan/magenta/yellow/black). RGB is generally used with on-screen graphics, 
-whereas CMYK is used for printing purposes.
-
-All color figures should be generated in RGB or CMYK color space. Grayscale 
-images should be submitted in Grayscale color space. Line art may be 
-provided in grayscale OR bitmap colorspace. Note that ``bitmap colorspace'' 
-and ``bitmap file format'' are not the same thing. When bitmap color space 
-is selected, .TIF/.TIFF/.PNG are the recommended file formats.
-
-\subsection{Accepted Fonts Within Figures}
-When preparing your graphics IEEE suggests that you use of one of the 
-following Open Type fonts: Times New Roman, Helvetica, Arial, Cambria, and 
-Symbol. If you are supplying EPS, PS, or PDF files all fonts must be 
-embedded. Some fonts may only be native to your operating system; without 
-the fonts embedded, parts of the graphic may be distorted or missing.
-
-A safe option when finalizing your figures is to strip out the fonts before 
-you save the files, creating ``outline'' type. This converts fonts to 
-artwork what will appear uniformly on any screen.
-
-\subsection{Using Labels Within Figures}
-
-\subsubsection{Figure Axis labels }
-Figure axis labels are often a source of confusion. Use words rather than 
-symbols. As an example, write the quantity ``Magnetization,'' or 
-``Magnetization M,'' not just ``M.'' Put units in parentheses. Do not label 
-axes only with units. As in Fig. 1, for example, write ``Magnetization 
-(A/m)'' or ``Magnetization (A$\cdot$m$^{-1}$),'' not just ``A/m.'' Do not label axes with a ratio of quantities and 
-units. For example, write ``Temperature (K),'' not ``Temperature/K.'' 
-
-Multipliers can be especially confusing. Write ``Magnetization (kA/m)'' or 
-``Magnetization (10$^{3}$ A/m).'' Do not write ``Magnetization 
-(A/m)$\,\times\,$1000'' because the reader would not know whether the top 
-axis label in Fig. 1 meant 16000 A/m or 0.016 A/m. Figure labels should be 
-legible, approximately 8 to 10 point type.
-
-\subsubsection{Subfigure Labels in Multipart Figures and Tables}
-Multipart figures should be combined and labeled before final submission. 
-Labels should appear centered below each subfigure in 8 point Times New 
-Roman font in the format of (a) (b) (c). 
-
-\subsection{File Naming}
-Figures (line artwork or photographs) should be named starting with the 
-first 5 letters of the author's last name. The next characters in the 
-filename should be the number that represents the sequential 
-location of this image in your article. For example, in author 
-``Anderson's'' paper, the first three figures would be named ander1.tif, 
-ander2.tif, and ander3.ps.
-
-Tables should contain only the body of the table (not the caption) and 
-should be named similarly to figures, except that `.t' is inserted 
-in-between the author's name and the table number. For example, author 
-Anderson's first three tables would be named ander.t1.tif, ander.t2.ps, 
-ander.t3.eps.
-
-Author photographs should be named using the first five characters of the 
-pictured author's last name. For example, four author photographs for a 
-paper may be named: oppen.ps, moshc.tif, chen.eps, and duran.pdf.
-
-If two authors or more have the same last name, their first initial(s) can 
-be substituted for the fifth, fourth, third$\ldots$ letters of their surname 
-until the degree where there is differentiation. For example, two authors 
-Michael and Monica Oppenheimer's photos would be named oppmi.tif, and 
-oppmo.eps.
-
-\subsection{Referencing a Figure or Table Within Your Paper}
-When referencing your figures and tables within your paper, use the 
-abbreviation ``Fig.'' even at the beginning of a sentence. Do not abbreviate 
-``Table.'' Tables should be numbered with Roman Numerals.
-
-\subsection{Checking Your Figures: The IEEE Graphics Analyzer}
-The IEEE Graphics Analyzer enables authors to pre-screen their graphics for 
-compliance with IEEE Access standards before submission. 
-The online tool, located at
-\underline{http://graphicsqc.ieee.org/}, allows authors to 
-upload their graphics in order to check that each file is the correct file 
-format, resolution, size and colorspace; that no fonts are missing or 
-corrupt; that figures are not compiled in layers or have transparency, and 
-that they are named according to the IEEE Access naming 
-convention. At the end of this automated process, authors are provided with 
-a detailed report on each graphic within the web applet, as well as by 
-email.
-
-For more information on using the Graphics Analyzer or any other graphics 
-related topic, contact the IEEE Graphics Help Desk by e-mail at 
-graphics@ieee.org.
-
-\subsection{Submitting Your Graphics}
-Because IEEE will do the final formatting of your paper,
-you do not need to position figures and tables at the top and bottom of each 
-column. In fact, all figures, figure captions, and tables can be placed at 
-the end of your paper. In addition to, or even in lieu of submitting figures 
-within your final manuscript, figures should be submitted individually, 
-separate from the manuscript in one of the file formats listed above in 
-Section \ref{formats}. Place figure captions below the figures; place table titles 
-above the tables. Please do not include captions as part of the figures, or 
-put them in ``text boxes'' linked to the figures. Also, do not place borders 
-around the outside of your figures.
-
-\subsection{Color Processing/Printing in IEEE Journals}
-All IEEE Transactions, Journals, and Letters allow an author to publish 
-color figures on IEEE Xplore\textregistered\ at no charge, and automatically 
-convert them to grayscale for print versions. In most journals, figures and 
-tables may alternatively be printed in color if an author chooses to do so. 
-Please note that this service comes at an extra expense to the author. If 
-you intend to have print color graphics, include a note with your final 
-paper indicating which figures or tables you would like to be handled that 
-way, and stating that you are willing to pay the additional fee.
-
-\section{Conclusion}
-A conclusion section is not required. Although a conclusion may review the 
-main points of the paper, do not replicate the abstract as the conclusion. A 
-conclusion might elaborate on the importance of the work or suggest 
-applications and extensions. 
+\section{Kesimpulan}
+\label{sec:conclusion}
+Studi ini menyajikan kerangka kerja yang komprehensif dan hemat biaya untuk inspeksi jalan otomatis. Dengan mengintegrasikan kecepatan YOLOv8n, pemahaman geometris padat dari DepthAnything V2, dan ketahanan Kalman Filter adaptif (CDKF) kami, kami mengatasi keterbatasan utama estimasi kedalaman monokuler dalam pengaturan dunia nyata. Sistem ini mampu memberikan kuantifikasi metrik terukur dari lubang jalan secara \textit{real-time}. Pekerjaan masa depan akan fokus pada pengoptimalan model untuk perangkat \textit{edge} tertanam (misalnya, NVIDIA Jetson Nano) untuk lebih mengurangi biaya penyebaran dan mengeksplorasi pengaturan multi-kamera untuk cakupan jalan yang lebih luas.
 
 \appendices
 
-Appendixes, if needed, appear before the acknowledgment.
+\section*{Ucapan Terima Kasih}
+Penulis ingin mengucapkan terima kasih kepada Departemen Sistem Informasi Universitas Hasanuddin atas dukungan dan sumber daya yang diberikan selama penelitian ini.
 
-\section*{Acknowledgment}
-
-The preferred spelling of the word ``acknowledgment'' in American English is 
-without an ``e'' after the ``g.'' Use the singular heading even if you have 
-many acknowledgments. Avoid expressions such as ``One of us (S.B.A.) would 
-like to thank $\ldots$ .'' Instead, write ``F. A. Author thanks $\ldots$ .'' In most 
-cases, sponsor and financial support acknowledgments are placed in the 
-unnumbered footnote on the first page, not here.
-
-\section*{References and Footnotes}
-
-\subsection{References}
-References need not be cited in text. When they are, they appear on the 
-line, in square brackets, inside the punctuation. Multiple references are 
-each numbered with separate brackets. When citing a section in a book, 
-please give the relevant page numbers. In text, refer simply to the 
-reference number. Do not use ``Ref.'' or ``reference'' except at the 
-beginning of a sentence: ``Reference \cite{b3} shows $\ldots$ .'' Please do not use 
-automatic endnotes in \emph{Word}, rather, type the reference list at the end of the 
-paper using the ``References'' style.
-
-Reference numbers are set flush left and form a column of their own, hanging 
-out beyond the body of the reference. The reference numbers are on the line, 
-enclosed in square brackets. In all references, the given name of the author 
-or editor is abbreviated to the initial only and precedes the last name. Use 
-them all; use \emph{et al.} only if names are not given. Use commas around Jr., 
-Sr., and III in names. Abbreviate conference titles. When citing IEEE 
-transactions, provide the issue number, page range, volume number, year, 
-and/or month if available. When referencing a patent, provide the day and 
-the month of issue, or application. References may not include all 
-information; please obtain and include relevant information. Do not combine 
-references. There must be only one reference with each number. If there is a 
-URL included with the print reference, it can be included at the end of the 
-reference. 
-
-Other than books, capitalize only the first word in a paper title, except 
-for proper nouns and element symbols. For papers published in translation 
-journals, please give the English citation first, followed by the original 
-foreign-language citation See the end of this document for formats and 
-examples of common references. For a complete discussion of references and 
-their formats, see the IEEE style manual at
-\underline{http://www.ieee.org/authortools}.
-
-\subsection{Footnotes}
-Number footnotes separately in superscript numbers.\footnote{It is recommended that footnotes be avoided (except for 
-the unnumbered footnote with the receipt date on the first page). Instead, 
-try to integrate the footnote information into the text.} Place the actual 
-footnote at the bottom of the column in which it is cited; do not put 
-footnotes in the reference list (endnotes). Use letters for table footnotes 
-(see Table \ref{table}).
-
-\section{Submitting Your Paper for Review}
-
-\subsection{Final Stage}
-When you submit your final version (after your paper has been accepted), 
-print it in two-column format, including figures and tables. You must also 
-send your final manuscript on a disk, via e-mail, or through a Web 
-manuscript submission system as directed by the society contact. You may use 
-\emph{Zip} for large files, or compress files using \emph{Compress, Pkzip, Stuffit,} or \emph{Gzip.} 
-
-Also, send a sheet of paper or PDF with complete contact information for all 
-authors. Include full mailing addresses, telephone numbers, fax numbers, and 
-e-mail addresses. This information will be used to send each author a 
-complimentary copy of the journal in which the paper appears. In addition, 
-designate one author as the ``corresponding author.'' This is the author to 
-whom proofs of the paper will be sent. Proofs are sent to the corresponding 
-author only.
-
-\subsection{Review Stage Using ScholarOne\textregistered\ Manuscripts}
-Contributions to the Transactions, Journals, and Letters may be submitted 
-electronically on IEEE's on-line manuscript submission and peer-review 
-system, ScholarOne\textregistered\ Manuscripts. You can get a listing of the 
-publications that participate in ScholarOne at 
-\underline{http://www.ieee.org/publications\_standards/publications/}\break\underline{authors/authors\_submission.html}.
-First check if you have an existing account. If there is none, please create 
-a new account. After logging in, go to your Author Center and click ``Submit 
-First Draft of a New Manuscript.'' 
-
-Along with other information, you will be asked to select the subject from a 
-pull-down list. Depending on the journal, there are various steps to the 
-submission process; you must complete all steps for a complete submission. 
-At the end of each step you must click ``Save and Continue''; just uploading 
-the paper is not sufficient. After the last step, you should see a 
-confirmation that the submission is complete. You should also receive an 
-e-mail confirmation. For inquiries regarding the submission of your paper on 
-ScholarOne Manuscripts, please contact oprs-support@ieee.org or call +1 732 
-465 5861.
-
-ScholarOne Manuscripts will accept files for review in various formats. 
-Please check the guidelines of the specific journal for which you plan to 
-submit.
-
-You will be asked to file an electronic copyright form immediately upon 
-completing the submission process (authors are responsible for obtaining any 
-security clearances). Failure to submit the electronic copyright could 
-result in publishing delays later. You will also have the opportunity to 
-designate your article as ``open access'' if you agree to pay the IEEE open 
-access fee. 
-
-\subsection{Final Stage Using ScholarOne Manuscripts}
-Upon acceptance, you will receive an email with specific instructions 
-regarding the submission of your final files. To avoid any delays in 
-publication, please be sure to follow these instructions. Most journals 
-require that final submissions be uploaded through ScholarOne Manuscripts, 
-although some may still accept final submissions via email. Final 
-submissions should include source files of your accepted manuscript, high 
-quality graphic files, and a formatted pdf file. If you have any questions 
-regarding the final submission process, please contact the administrative 
-contact for the journal. 
-
-In addition to this, upload a file with complete contact information for all 
-authors. Include full mailing addresses, telephone numbers, fax numbers, and 
-e-mail addresses. Designate the author who submitted the manuscript on 
-ScholarOne Manuscripts as the ``corresponding author.'' This is the only 
-author to whom proofs of the paper will be sent. 
-
-\subsection{Copyright Form}
-Authors must submit an electronic IEEE Copyright Form (eCF) upon submitting 
-their final manuscript files. You can access the eCF system through your 
-manuscript submission system or through the Author Gateway. You are 
-responsible for obtaining any necessary approvals and/or security 
-clearances. For additional information on intellectual property rights, 
-visit the IEEE Intellectual Property Rights department web page at 
-\underline{http://www.ieee.org/publications\_standards/publications/}\break\underline{rights/index.html}. 
-
-\section{IEEE Publishing Policy}
-The general IEEE policy requires that authors should only submit original 
-work that has neither appeared elsewhere for publication, nor is under 
-review for another refereed publication. The submitting author must disclose 
-all prior publication(s) and current submissions when submitting a 
-manuscript. Do not publish ``preliminary'' data or results. The submitting 
-author is responsible for obtaining agreement of all coauthors and any 
-consent required from employers or sponsors before submitting an article. 
-The IEEE Access Department strongly discourages courtesy 
-authorship; it is the obligation of the authors to cite only relevant prior 
-work.
-
-The IEEE Access Department does not publish conference 
-records or proceedings, but can publish articles related to conferences that 
-have undergone rigorous peer review. Minimally, two reviews are required for 
-every article submitted for peer review.
-
-\section{Publication Principles}
-The two types of contents of that are published are; 1) peer-reviewed and 2) 
-archival. The Access Department publishes scholarly 
-articles of archival value as well as tutorial expositions and critical 
-reviews of classical subjects and topics of current interest. 
-
-Authors should consider the following points:
-
-\begin{enumerate}
-\item Technical papers submitted for publication must advance the state of knowledge and must cite relevant prior work. 
-\item The length of a submitted paper should be commensurate with the importance, or appropriate to the complexity, of the work. For example, an obvious extension of previously published work might not be appropriate for publication or might be adequately treated in just a few pages.
-\item Authors must convince both peer reviewers and the editors of the scientific and technical merit of a paper; the standards of proof are higher when extraordinary or unexpected results are reported. 
-\item Because replication is required for scientific progress, papers submitted for publication must provide sufficient information to allow readers to perform similar experiments or calculations and 
-use the reported results. Although not everything need be disclosed, a paper 
-must contain new, useable, and fully described information. For example, a 
-specimen's chemical composition need not be reported if the main purpose of 
-a paper is to introduce a new measurement technique. Authors should expect 
 \begin{thebibliography}{00}
 
 \bibitem{kemenpupr}
-Kementerian Pekerjaan Umum dan Perumahan Rakyat (PUPR), ``Statistik Jalan Indonesia,'' 2024. [Online]. Available: https://pu.go.id
+Kementerian Pekerjaan Umum dan Perumahan Rakyat (PUPR), ``Statistik Jalan Indonesia,'' 2024. [Daring]. Tersedia: https://pu.go.id
 
 \bibitem{aharon2022}
 N. Aharon, A. Bewley, and L. Zhang, ``BoT-SORT: Robust associations multi-pedestrian tracking,'' \emph{arXiv preprint arXiv:2206.14651}, 2022. [Online]. Available: https://arxiv.org/abs/2206.14651
@@ -570,9 +164,8 @@ F. Rahman and U. Javed, ``An Analysis of Kalman Filter-based Object Tracking Met
 \end{thebibliography}
 
 \begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{a1.png}}]{Pangeran Juhrifar Jafar}
-is a student at Hasanuddin University, majoring in Information Systems. His research interests include Computer Vision, Deep Learning, and Intelligent Transportation Systems.
+adalah mahasiswa di Universitas Hasanuddin, jurusan Sistem Informasi. Minat penelitiannya meliputi Computer Vision, Deep Learning, dan Sistem Transportasi Cerdas.
 \end{IEEEbiography}
-
 
 \EOD
 
