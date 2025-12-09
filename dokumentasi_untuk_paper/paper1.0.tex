@@ -1,41 +1,38 @@
-\documentclass{ieeeaccess}
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
+\usepackage{xcolor}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
-\history{Diterima 1 Desember 2025, disetujui 10 Desember 2025, tanggal publikasi 15 Desember 2025, tanggal versi saat ini 20 Desember 2025.}
-\doi{10.1109/ACCESS.2025.DOI}
 
 \title{Sistem Terintegrasi Deteksi dan Pengukuran Lubang Jalan Menggunakan YOLOv8 dan DepthAnything V2 dengan Filter Temporal}
-\author{\uppercase{Pangeran Juhrifar Jafar}\authorrefmark{1},
-\IEEEmembership{Student Member, IEEE}}
-\address[1]{Universitas Hasanuddin, Makassar, Indonesia (e-mail: pangeranjuhrifar@gmail.com)}
 
-\markboth
-{Especialização de Computação Científica para a Indústria. 2023-2}
-{Especialização de Computação Científica para a Indústria. 2023-2}
-
-\corresp{Penulis korespondensi: Pangeran Juhrifar Jafar (e-mail: pangeranjuhrifar@gmail.com).}
+\author{\IEEEauthorblockN{Pangeran Juhrifar Jafar}
+\IEEEauthorblockA{\textit{Jurusan Sistem Informasi}\\
+\textit{Universitas Hasanuddin}\\
+Makassar, Indonesia\\
+pangeranjuhrifar@gmail.com}
+}
+\maketitle
 
 \begin{abstract}
 Pemeliharaan infrastruktur jalan sangat penting untuk keselamatan transportasi dan efisiensi ekonomi, namun metode inspeksi manual tradisional masih bersifat reaktif, subjektif, dan berbahaya. Makalah ini menyajikan "Sistem Informasi Cerdas" yang komprehensif untuk deteksi \textit{real-time}, pengukuran akurat, dan pelaporan otomatis lubang jalan. Kami mengusulkan kerangka kerja terintegrasi yang memanfaatkan model \textbf{YOLOv8n-seg} yang ringan untuk deteksi lubang berkecepatan tinggi dengan instance segmentation mask, dan \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler yang mendetail. \textit{Pipeline} dimulai dengan koreksi distorsi lensa menggunakan parameter kalibrasi kamera. Untuk mengatasi tantangan ambiguitas skala dalam visi monokuler, kami menerapkan metode pemulihan skala berbasis tinggi kamera yang dinamis dan toleran terhadap kesalahan. Pengukuran dimensi (diameter dan kedalaman) dilakukan menggunakan statistik yang kuat: median untuk identifikasi permukaan jalan dan percentile setelah IQR filtering untuk dasar lubang, dengan ellipse fitting pada mask segmentasi untuk akurasi diameter yang lebih tinggi. Selanjutnya, kami memperkenalkan \textbf{Confidence and Distance Kalman Filter (CDKF)} yang dikombinasikan dengan pelacakan \textbf{BoT-SORT} untuk memperhalus pengukuran secara temporal dan menolak \textit{outlier}. Sistem ini mengintegrasikan REST API untuk transmisi data otomatis ke dasbor terpusat dengan payload komprehensif yang mencakup metadata pengukuran, memungkinkan manajemen infrastruktur yang proaktif. Hasil eksperimen menunjukkan bahwa \textit{pipeline} kami mencapai keseimbangan antara kecepatan pemrosesan \textit{real-time} (30 FPS) dan akurasi pengukuran (error $< 15\%$), dengan peningkatan akurasi signifikan dari penggunaan segmentation mask dan statistik kuat, menawarkan solusi yang layak untuk sistem transportasi cerdas di lingkungan dengan sumber daya terbatas.
 \end{abstract}
 
-\begin{keywords}
-Deteksi Lubang Jalan, Estimasi Kedalaman Monokuler, YOLOv8n, DepthAnything V2, Kalman Filter, Smart City, Inspeksi Jalan Otomatis.
-\end{keywords}
-
-\titlepgskip=-15pt
-
-\maketitle
+\begin{IEEEkeywords}
+Deteksi Lubang Jalan, Estimasi Kedalaman Monokuler, YOLOv8n, DepthAnything V2, Kalman Filter, Smart City, Inspeksi Jalan Otomatis
+\end{IEEEkeywords}
 
 \section{Pendahuluan}
 \label{sec:introduction}
-\PARstart{I}{nfrastruktur} jalan berfungsi sebagai tulang punggung fundamental bagi pembangunan ekonomi dan sosial suatu negara. Jalan yang berkualitas tinggi memfasilitasi mobilitas, mendukung pertumbuhan ekonomi, dan memastikan aksesibilitas layanan publik. Namun, memelihara infrastruktur ini menghadirkan tantangan yang signifikan, terutama di negara-negara dengan geografi kompleks seperti Indonesia. Menurut Kementerian Pekerjaan Umum dan Perumahan Rakyat (PUPR), sekitar 30\% dari 496.000 km jaringan jalan di Indonesia mengalami kerusakan mulai dari ringan hingga berat \cite{kemenpupr}. Di antara masalah-masalah ini, lubang jalan adalah fenomena yang paling umum, diperburuk oleh curah hujan yang tinggi dan beban lalu lintas yang berat. Lubang jalan tidak hanya mengganggu kenyamanan berkendara tetapi juga menimbulkan risiko keselamatan yang serius dan menyebabkan kerugian ekonomi yang signifikan melalui kerusakan kendaraan dan kecelakaan.
+
+Infrastruktur jalan berfungsi sebagai tulang punggung fundamental bagi pembangunan ekonomi dan sosial suatu negara. Jalan yang berkualitas tinggi memfasilitasi mobilitas, mendukung pertumbuhan ekonomi, dan memastikan aksesibilitas layanan publik. Namun, memelihara infrastruktur ini menghadirkan tantangan yang signifikan, terutama di negara-negara dengan geografi kompleks seperti Indonesia. Menurut Kementerian Pekerjaan Umum dan Perumahan Rakyat (PUPR), sekitar 30\% dari 496.000 km jaringan jalan di Indonesia mengalami kerusakan mulai dari ringan hingga berat \cite{kemenpupr}. Di antara masalah-masalah ini, lubang jalan adalah fenomena yang paling umum, diperburuk oleh curah hujan yang tinggi dan beban lalu lintas yang berat. Lubang jalan tidak hanya mengganggu kenyamanan berkendara tetapi juga menimbulkan risiko keselamatan yang serius dan menyebabkan kerugian ekonomi yang signifikan melalui kerusakan kendaraan dan kecelakaan.
 
 Secara tradisional, deteksi kerusakan jalan bergantung pada metode inspeksi manual dan laporan masyarakat. Pendekatan-pendekatan ini secara inheren bersifat reaktif, padat karya, berbahaya bagi inspektur, dan seringkali rentan terhadap kesalahan subjektif. Ada kesenjangan yang signifikan antara kebutuhan akan pemeliharaan proaktif dan kemampuan sistem deteksi manual. Meskipun beberapa inisiatif \textit{smart city} telah dimulai di kota-kota besar, sistem otomatis yang komprehensif yang secara efektif mengintegrasikan deteksi, pengukuran akurat, dan pelaporan masih belum tersedia secara luas.
 
@@ -54,129 +51,14 @@ Makalah ini mengusulkan "Sistem Informasi Cerdas" terintegrasi yang mengatasi ke
 
 Sisa dari makalah ini disusun sebagai berikut: Bagian II merinci metodologi yang kami usulkan, termasuk arsitektur sistem dan algoritma. Bagian III menyajikan hasil eksperimen dan analisis. Akhirnya, Bagian IV menyimpulkan makalah dan membahas pekerjaan masa depan.
 
-\section{Metodologi}
-\label{sec:methodology}
-
-"Sistem Informasi Cerdas" yang diusulkan dirancang untuk beroperasi sebagai \textit{pipeline} otomatis dan \textit{real-time} untuk inspeksi infrastruktur jalan. Arsitektur sistem mengintegrasikan deteksi objek berbasis \textit{deep learning}, estimasi kedalaman monokuler, dan pelacakan temporal yang kuat untuk menghasilkan pengukuran metrik kerusakan jalan yang memiliki lokasi geografis.
-
-\subsection{Arsitektur Sistem}
-\textit{Pipeline} ini terdiri dari lima modul utama yang diproses secara berurutan: (1) \textbf{Pra-pemrosesan dan Kalibrasi}, (2) \textbf{Deteksi Lubang 2D}, (3) \textbf{Pengukuran Metrik 3D}, (4) \textbf{Pelacakan Temporal}, dan (5) \textbf{Pelaporan Otomatis}. 
-
-Alur kerja lengkap dimulai dengan koreksi distorsi lensa menggunakan parameter kalibrasi kamera yang telah diperoleh sebelumnya. Bingkai yang telah dikoreksi kemudian diproses secara simultan oleh modul deteksi YOLOv8 untuk melokalisasi lubang dan modul estimasi kedalaman DepthAnything V2 untuk menyimpulkan geometri 3D. Output ini digabungkan dengan menerapkan pemulihan skala untuk mengkonversi kedalaman relatif menjadi metrik absolut, kemudian menghitung dimensi fisik (diameter dan kedalaman) menggunakan statistik yang kuat. Pelacak multi-objek BoT-SORT menghubungkan pengukuran ini di seluruh bingkai, dan Kalman Filter (CDKF) memperhalus estimasi dari waktu ke waktu. Akhirnya, kerusakan yang terkonfirmasi dikirim ke server pusat melalui REST API.
-
-\subsubsection{Kalibrasi Kamera dan Pra-pemrosesan}
-Sebelum inferensi, setiap bingkai video dikoreksi untuk menghilangkan distorsi lensa radial dan tangensial menggunakan parameter kalibrasi yang diperoleh melalui prosedur kalibrasi standar dengan pola papan catur. Proses kalibrasi menghasilkan matriks intrinsik $K$ dan koefisien distorsi $D$, yang kemudian digunakan untuk transformasi undistortion. Matriks intrinsik $K$ berisi parameter penting untuk konversi metrik:
-\begin{equation}
-K = \begin{bmatrix}
-f_x & 0 & c_x \\
-0 & f_y & c_y \\
-0 & 0 & 1
-\end{bmatrix}
-\end{equation}
-di mana $f_x, f_y$ adalah panjang fokus dalam satuan piksel, dan $(c_x, c_y)$ adalah titik utama kamera. Selain itu, tinggi pemasangan kamera $H_{cam}$ dari permukaan jalan dicatat untuk digunakan dalam pemulihan skala.
-
-\subsubsection{Deteksi Objek dengan YOLOv8}
-Untuk modul deteksi 2D, kami menggunakan \textbf{YOLOv8} (\textit{You Only Look Once}, versi 8), detektor satu tahap mutakhir yang dikenal karena keseimbangan optimal antara kecepatan dan akurasi \cite{gorro2024}. Kami secara khusus menggunakan \textit{backbone} \textbf{YOLOv8n} (nano), yang merupakan varian paling ringan, memastikan inferensi latensi rendah yang cocok untuk penyebaran seluler atau \textit{edge}.
-
-Model ini disesuaikan (\textit{fine-tuned}) pada dataset gambar lubang jalan yang dikurasi menggunakan transfer learning dari bobot pra-latih COCO. Jaringan menerima gambar RGB yang telah dikoreksi distorsi $I_{undist} \in \mathbb{R}^{H \times W \times 3}$ dan menghasilkan serangkaian deteksi. Untuk akurasi pengukuran yang lebih tinggi, kami menggunakan varian \textbf{YOLOv8-seg} yang menghasilkan \textit{instance segmentation mask} $M_i$ untuk setiap lubang yang terdeteksi, memberikan representasi bentuk yang lebih presisi dibandingkan kotak pembatas persegi panjang. Setiap deteksi $d_i$ terdiri dari koordinat kotak pembatas $b_i = (x, y, w, h)$, mask segmentasi $M_i$, dan skor kepercayaan $c_i$. Untuk meminimalkan positif palsu, ambang batas kepercayaan yang tinggi (misalnya, 0.5) diterapkan selama inferensi.
-
-\subsection{Estimasi Kedalaman Monokuler dengan DepthAnything V2}
-Untuk mengekstrak informasi 3D dari gambar 2D, kami mengintegrasikan \textbf{DepthAnything V2} \cite{depthanything2024}, model Estimasi Kedalaman Monokuler (MDE) yang sangat kuat berdasarkan arsitektur DPT (\textit{Dense Prediction Transformer}). Tidak seperti sistem visi stereo tradisional yang memerlukan kalibrasi kompleks dan kamera ganda, DepthAnything V2 memprediksi peta kedalaman padat $D_{rel} \in \mathbb{R}^{H \times W}$ dari satu gambar tunggal.
-
-\subsubsection{Pemulihan Skala}
-Tantangan kritis dalam estimasi kedalaman monokuler adalah "ambiguitas skala"---model menghasilkan nilai kedalaman relatif yang invarian terhadap skala metrik pemandangan. Untuk mengubah prediksi relatif ini menjadi satuan metrik absolut (meter), kami menerapkan metode pemulihan skala berbasis tinggi kamera (\textit{height-based scale recovery}).
-
-Metode ini memanfaatkan tinggi pemasangan kamera $H_{cam}$ yang diketahui sebagai referensi metrik. Untuk setiap bingkai, kami mengidentifikasi region of interest (ROI) pada area jalan datar di depan kendaraan. Median kedalaman relatif dari region ini, dinotasikan sebagai $d_{rel,road}$, dihitung untuk memberikan estimasi stabil terhadap variasi noise. Faktor penskalaan $S$ kemudian dihitung sebagai:
-\begin{equation}
-S = \frac{H_{cam}}{d_{rel,road}}
-\end{equation}
-di mana $H_{cam}$ adalah tinggi pemasangan fisik kamera dari permukaan jalan (dalam meter). Peta kedalaman absolut $D_{abs}$ kemudian dihitung sebagai:
-\begin{equation}
-D_{abs}(u,v) = D_{rel}(u,v) \times S
-\end{equation}
-Untuk stabilitas temporal, faktor skala $S$ diperbarui secara dinamis setiap $N$ bingkai atau saat terjadi perubahan scene yang signifikan, dengan menerapkan \textit{moving average} untuk mengurangi fluktuasi. Metode alternatif berbasis objek referensi (seperti garis jalan atau manhole cover dengan ukuran standar) dapat digunakan sebagai validasi silang jika tersedia.
-
-\subsection{Ekstraksi Region dan Perhitungan Ukuran dengan Statistik Kuat}
-Untuk setiap lubang yang terdeteksi, kami mengekstrak region of interest (ROI) dari peta kedalaman absolut. Preferensi diberikan kepada penggunaan mask segmentasi dari YOLOv8-seg untuk akurasi area yang lebih presisi, dengan fallback ke bounding box jika mask tidak tersedia.
-
-\subsubsection{Identifikasi Depth Surface dan Base}
-Permukaan jalan di sekitar lubang diidentifikasi dengan mengambil piksel border dalam band 5-10 piksel di sekitar perimeter lubang. Untuk ketahanan terhadap \textit{outlier}, kami menggunakan median sebagai estimator robust:
-\begin{equation}
-Z_{surface} = \text{median}(D_{abs}[\text{border pixels}])
-\end{equation}
-Dasar lubang diidentifikasi dari nilai kedalaman di dalam ROI. Untuk menghilangkan \textit{outlier} yang disebabkan oleh noise atau artefak, kami menerapkan metode \textit{Interquartile Range} (IQR):
-\begin{equation}
-\begin{aligned}
-Q_1 &= \text{percentile}(D_{abs}[\text{ROI}], 25) \\
-Q_3 &= \text{percentile}(D_{abs}[\text{ROI}], 75) \\
-\text{IQR} &= Q_3 - Q_1 \\
-D_{filtered} &= \{d \in D_{abs}[\text{ROI}] : Q_1 - 1.5 \times \text{IQR} \leq d \leq Q_3 + 1.5 \times \text{IQR}\}
-\end{aligned}
-\end{equation}
-Kedalaman dasar kemudian dihitung sebagai percentile ke-10 dari depth yang telah difilter untuk menangkap bagian terdalam:
-\begin{equation}
-Z_{base} = \text{percentile}(D_{filtered}, 10)
-\end{equation}
-
-\subsubsection{Perhitungan Diameter dan Kedalaman}
-Kedalaman lubang dihitung sebagai selisih antara permukaan dan dasar:
-\begin{equation}
-\text{depth} = Z_{surface} - Z_{base}
-\end{equation}
-Untuk perhitungan diameter, jika mask segmentasi tersedia, kami melakukan ellipse fitting pada kontur mask untuk mendapatkan major axis yang lebih akurat. Jika hanya bounding box yang tersedia, lebar bounding box digunakan. Dengan menggunakan model pinhole camera dan kedalaman rata-rata $Z_{avg} = (Z_{surface} + Z_{base})/2$, diameter metrik dihitung sebagai:
-\begin{equation}
-\text{diameter} = \frac{w_{px} \times Z_{avg}}{f_x}
-\end{equation}
-di mana $w_{px}$ adalah lebar dalam piksel (dari ellipse major axis atau bounding box) dan $f_x$ adalah panjang fokus kamera dalam satuan piksel.
-
-\subsection{Pemfilteran Temporal dan Pelacakan}
-Pengukuran bingkai tunggal seringkali mengandung \textit{noise} karena kekaburan gerak, oklusi, atau kesalahan estimasi. Untuk mengatasi hal ini, kami menggunakan paradigma \textit{tracking-by-detection} menggunakan \textbf{BoT-SORT} \cite{aharon2022} yang diperluas dengan \textbf{Confidence and Distance Kalman Filter (CDKF)} khusus.
-
-\subsubsection{Pelacak BoT-SORT}
-BoT-SORT digunakan untuk menghubungkan deteksi lubang yang sama di seluruh bingkai video yang berurutan. Ini menggunakan kombinasi \textit{Intersection over Union} (IoU) dan fitur tampilan untuk menetapkan ID unik ke trek. Fitur re-identification memungkinkan sistem untuk menangani oklusi sementara. Setiap trek mempertahankan buffer pengukuran dari $N$ bingkai terakhir (biasanya 10-30 bingkai) untuk agregasi statistik. Ini memungkinkan sistem untuk mengagregasi beberapa pengukuran dari cacat yang sama saat kendaraan mendekatinya.
-
-\subsubsection{Confidence and Distance Kalman Filter (CDKF)}
-Kalman Filter standar mengasumsikan kovariansi \textit{noise} pengukuran konstan ($R$). Namun, dalam aplikasi kami, keandalan pengukuran bervariasi secara signifikan dengan jarak; deteksi yang lebih dekat ke kamera lebih akurat daripada yang jauh. Kami memperkenalkan model \textit{noise} pengukuran adaptif, CDKF, di mana kovariansi \textit{noise} $R_k$ disesuaikan secara dinamis berdasarkan kepercayaan deteksi $c$ dan estimasi kedalaman $d$:
-\begin{equation}
-R_k = \frac{\lambda}{c} + \theta \cdot \max(d, d_0)
-\end{equation}
-di mana $\lambda$ dan $\theta$ adalah parameter penyetelan, dan $d_0$ adalah jarak dasar. State vector meliputi diameter, kedalaman, dan kecepatan perubahan keduanya:
-\begin{equation}
-\mathbf{x} = [\text{diameter}, \text{depth}, v_{\text{diameter}}, v_{\text{depth}}]^T
-\end{equation}
-Formulasi ini memastikan bahwa pengukuran jarak dekat dengan kepercayaan tinggi memiliki pengaruh yang lebih kuat pada pembaruan keadaan, secara efektif memperhalus estimasi dimensi selama masa hidup trek. \textit{Outlier} tambahan ditolak menggunakan statistik kuat yang diterapkan pada buffer pengukuran dari setiap trek sebelum agregasi final.
-
-\subsection{Pelaporan Otomatis}
-Komponen terakhir adalah mesin pelaporan. Setelah trek "dikonfirmasi" (terdeteksi secara konsisten selama jumlah bingkai minimum, biasanya 10-15 bingkai) dan meninggalkan bidang pandang, keadaan agregatnya dikemas menjadi muatan JSON yang komprehensif. Payload mencakup lokasi geografis (GPS), dimensi yang telah diperhalus (diameter dan kedalaman dalam sentimeter), skor kepercayaan, klasifikasi tingkat keparahan otomatis (ringan, sedang, berat berdasarkan ambang yang telah ditentukan), dan metadata pengukuran yang mencakup metode pemulihan skala, faktor skala, tinggi kamera, dan jumlah iterasi Kalman Filter. Data ini dikirim secara asinkron melalui REST API ke endpoint \texttt{POST /api/v1/potholes/report} pada dasbor terpusat, yang memungkinkan otoritas jalan untuk memvisualisasikan tingkat keparahan dan lokasi cacat secara \textit{real-time} dan mengambil tindakan perbaikan yang diprioritaskan.
-
+\section{Metode}
 \section{Eksperimen dan Hasil}
-\label{sec:experiments}
-Untuk mengevaluasi kinerja sistem terintegrasi kami, kami melakukan uji lapangan pada berbagai ruas jalan yang menampilkan cacat lubang nyata. Sistem disebarkan pada kendaraan yang dilengkapi dengan webcam HD standar (Logitech C920) yang dipasang pada ketinggian 135 cm dari permukaan jalan.
-
-\subsection{Kalibrasi Kamera}
-Kalibrasi kamera dilakukan menggunakan pola papan catur dengan ukuran kotak 25 mm $\times$ 25 mm. Sebanyak 15-20 gambar kalibrasi diambil dari berbagai sudut dan jarak untuk memastikan akurasi. Proses kalibrasi menghasilkan matriks intrinsik $K$ dan koefisien distorsi $D$ dengan reprojection error kurang dari 0.5 piksel. Parameter kalibrasi disimpan dan digunakan untuk koreksi distorsi pada setiap bingkai video sebelum inferensi.
-
-\subsection{Pengaturan Eksperimen}
-\textit{Pipeline} inferensi dijalankan pada stasiun kerja laptop yang dilengkapi dengan GPU NVIDIA RTX 4060 Ti. Dataset pelatihan terdiri dari campuran dataset publik (RDD2022, Kaggle) dan data lokal yang dikumpulkan di berbagai kondisi jalan di Indonesia, dengan split 70\% train, 15\% validation, dan 15\% test. Model YOLOv8n-seg dilatih menggunakan transfer learning dari bobot pra-latih COCO dengan augmentasi data yang mencakup variasi geometris dan fotometris untuk meningkatkan robustnes. Kami menilai tiga kategori metrik kinerja utama:
-\begin{itemize}
-    \item \textbf{Akurasi Deteksi:} Dievaluasi menggunakan Presisi, \textit{Recall}, F1-score, dan mAP@50 terhadap anotasi manual \textit{ground-truth}.
-    \item \textbf{Kesalahan Pengukuran:} Dikuantifikasi menggunakan \textit{Mean Absolute Error} (MAE), \textit{Root Mean Square Error} (RMSE), dan \textit{Mean Absolute Percentage Error} (MAPE) untuk estimasi diameter dan kedalaman dibandingkan dengan pengukuran manual fisik menggunakan pita ukur dan pengukur kedalaman.
-    \item \textbf{Kinerja Sistem:} Latensi end-to-end, throughput (FPS), dan stabilitas tracking diukur untuk evaluasi keseluruhan sistem.
-\end{itemize}
 
 \subsection{Hasil}
-Hasil awal menunjukkan bahwa model YOLOv8n mencapai kecepatan pemrosesan \textit{real-time} sekitar 30 FPS dengan \textit{recall} deteksi tinggi. Penggunaan instance segmentation mask (YOLOv8-seg) memberikan peningkatan akurasi pengukuran diameter dibandingkan dengan bounding box rectangular, dengan pengurangan kesalahan estimasi sekitar 12\%. Pelacak BoT-SORT berhasil mempertahankan ID yang kuat bahkan dalam pemandangan yang berantakan dengan oklusi, dengan tingkat asosiasi yang konsisten di atas 85\%. 
-
-Metode pemulihan skala berbasis tinggi menghasilkan pengukuran kedalaman dengan kesalahan rata-rata kurang dari 15\% untuk lubang dalam rentang 5-15 meter, yang cukup untuk klasifikasi keparahan (ringan: $< 2.5$ cm, sedang: $2.5-7.5$ cm, berat: $\geq 7.5$ cm). Penerapan statistik kuat (median untuk $Z_{surface}$ dan percentile untuk $Z_{base}$ setelah IQR filtering) mengurangi varians pengukuran sekitar 25\% dibandingkan dengan metode berbasis mean, menunjukkan ketahanan yang lebih baik terhadap noise pada depth map.
-
-\subsection{Studi Ablasi}
-Kami melakukan studi ablasi untuk memahami kontribusi setiap komponen. Baseline menggunakan bounding box dengan mean depth menunjukkan error tertinggi. Penambahan segmentation mask mengurangi MAE diameter sekitar 12\%. Penerapan statistik kuat (median dan percentile dengan IQR filtering) mengurangi varians estimasi kedalaman sekitar 25\%. Dimasukannya pemulihan skala berbasis tinggi mengkonversi pengukuran relatif menjadi metrik absolut dengan akurasi yang dapat diterima. Penambahan pelacakan BoT-SORT meningkatkan stabilitas ID dan memungkinkan agregasi temporal. Akhirnya, dimasukannya Kalman Filter adaptif (CDKF) mengurangi getaran signifikan yang diamati dalam pengukuran \textit{frame-by-frame} mentah, mengurangi varians estimasi diameter sekitar 20\% dibandingkan dengan sistem tanpa filtering temporal. Hal ini menunjukkan pentingnya penghalusan temporal dalam skenario inspeksi seluler yang dinamis.
 
 \section{Kesimpulan}
 \label{sec:conclusion}
-Studi ini menyajikan kerangka kerja yang komprehensif dan hemat biaya untuk inspeksi jalan otomatis. Dengan mengintegrasikan kecepatan YOLOv8n, pemahaman geometris padat dari DepthAnything V2, dan ketahanan Kalman Filter adaptif (CDKF) kami, kami mengatasi keterbatasan utama estimasi kedalaman monokuler dalam pengaturan dunia nyata. Sistem ini mampu memberikan kuantifikasi metrik terukur dari lubang jalan secara \textit{real-time}. Pekerjaan masa depan akan fokus pada pengoptimalan model untuk perangkat \textit{edge} tertanam (misalnya, NVIDIA Jetson Nano) untuk lebih mengurangi biaya penyebaran dan mengeksplorasi pengaturan multi-kamera untuk cakupan jalan yang lebih luas.
 
-\appendices
 
 \section*{Ucapan Terima Kasih}
 Penulis ingin mengucapkan terima kasih kepada Departemen Sistem Informasi Universitas Hasanuddin atas dukungan dan sumber daya yang diberikan selama penelitian ini.
@@ -220,11 +102,5 @@ T. Zhang and L. Chen, ``Rethinking Road Surface 3D Reconstruction and Pothole De
 F. Rahman and U. Javed, ``An Analysis of Kalman Filter-based Object Tracking Methods for Fast-Moving Tiny Objects,'' \emph{ResearchGate Preprint}, 2025. [Online]. Available: https://www.researchgate.net/publication/395771559
 
 \end{thebibliography}
-
-\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{a1.png}}]{Pangeran Juhrifar Jafar}
-adalah mahasiswa di Universitas Hasanuddin, jurusan Sistem Informasi. Minat penelitiannya meliputi Computer Vision, Deep Learning, dan Sistem Transportasi Cerdas.
-\end{IEEEbiography}
-
-\EOD
 
 \end{document}
