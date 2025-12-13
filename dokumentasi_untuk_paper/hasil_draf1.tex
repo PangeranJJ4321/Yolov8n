@@ -1,0 +1,72 @@
+
+\subsection{Performa Deteksi dan Segmentasi (YOLOv8)}
+\label{sec:yolo_performance}
+
+Analisis performa deteksi dan segmentasi meninjau dua aspek: konfigurasi pelatihan teknis dan hasil evaluasi metrik kuantitatif. Evaluasi ini bertujuan memvalidasi kemampuan model dalam mengisolasi area lubang jalan (\textit{Region of Interest}) secara akurat sebelum diproses lebih lanjut.
+
+\subsubsection{Konfigurasi Pelatihan Model}
+
+Berdasarkan eksperimen awal, arsitektur \textbf{YOLOv8m-seg} (\textit{Medium}) dipilih menggantikan varian Nano. Varian Medium menawarkan keseimbangan yang lebih baik antara kedalaman ekstraksi fitur dan latensi inferensi, yang krusial untuk menangani tekstur jalan yang kompleks.
+
+Pelatihan dilakukan menggunakan akselerator \textbf{NVIDIA GeForce RTX 4060 Ti} (16GB VRAM) dengan kerangka kerja PyTorch 2.5.1. Parameter pelatihan utama meliputi:
+\begin{itemize}
+    \item \textbf{Resolusi Input:} $960 \times 960$ piksel. Resolusi tinggi ini dipilih untuk meningkatkan daya tangkap terhadap lubang berukuran kecil atau yang berada jauh dari kamera.
+    \item \textbf{Durasi \& Strategi:} Total 192 \textit{epoch} dengan mekanisme \textit{early stopping} (patience=100). Konvergensi optimal tercapai dan model terbaik disimpan pada \textit{epoch} ke-92.
+    \item \textbf{Hiperparameter:} Ukuran \textit{batch} 8, pengoptimal SGD (\textit{Stochastic Gradient Descent}) dengan \textit{learning rate} awal 0,005, momentum 0,937, dan \textit{weight decay} 0,0005.
+\end{itemize}
+
+Selama pelatihan, kurva fungsi kerugian (\textit{loss}) untuk klasifikasi, regresi \textit{box}, dan segmentasi menunjukkan tren penurunan yang stabil (Gambar~\ref{fig:training_loss}), mengindikasikan model berhasil mempelajari fitur representatif tanpa mengalami \textit{overfitting} yang signifikan.
+
+\begin{figure}[htbp]
+  \centering
+  \framebox{\parbox{0.8\textwidth}{\centering
+    \vspace{1cm}
+    \textbf{[Placeholder Grafik Loss]} \\
+    \small\textit{Masukkan grafik training/validation loss dari file results.png di sini.}
+    \vspace{1cm}
+  }}
+  \caption{Kurva penurunan loss pelatihan dan validasi model YOLOv8m-seg.}
+  \label{fig:training_loss}
+\end{figure}
+
+\subsubsection{Evaluasi Metrik Deteksi}
+
+Evaluasi kuantitatif dilakukan pada dataset validasi berisi 300 citra dengan total 565 instansi objek. Tabel~\ref{tab:yolo_metrics} merangkum kinerja model. Secara agregat, model mencapai \textit{Mean Average Precision} (mAP) pada ambang batas IoU 0,5 sebesar \textbf{0,789}.
+
+\begin{table}[h]
+\caption{\label{tab:yolo_metrics}Metrik Evaluasi Segmentasi YOLOv8m-seg pada Dataset Validasi.}
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+Kelas & Precision (P) & Recall (R) & mAP@0.5 & mAP@0.5:0.95 \\
+\midrule
+\textbf{Semua Kelas} & \textbf{0.765} & \textbf{0.756} & \textbf{0.789} & \textbf{0.619} \\
+Pothole & 0.795 & 0.912 & 0.892 & 0.685 \\
+Manhole & 0.735 & 0.600 & 0.687 & 0.552 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Analisis mendalam terhadap hasil tersebut menunjukkan:
+\begin{enumerate}
+    \item \textbf{Sensitivitas Tinggi:} Skor \textit{Recall} sebesar \textbf{0,912} pada kelas \textit{Pothole} mengindikasikan bahwa sistem mampu mendeteksi lebih dari 91\% lubang jalan yang ada. Hal ini meminimalkan risiko \textit{false negatives} yang berbahaya bagi keselamatan pengguna jalan.
+    \item \textbf{Presisi Segmentasi:} Nilai mAP@0.5 sebesar \textbf{0,892} menegaskan bahwa mask segmentasi sangat presisi mengikuti kontur kerusakan yang ireguler, yang vital untuk akurasi pengukuran diameter di tahap selanjutnya.
+    \item \textbf{Diskriminasi Kelas:} Meskipun skor \textit{Manhole} lebih rendah (mAP 0,687) akibat ketidakseimbangan data, model tetap efektif membedakan lubang berbahaya dari infrastruktur jalan normal.
+\end{enumerate}
+
+Gambar~\ref{fig:detection_results} memperlihatkan contoh kualitatif hasil segmentasi pada kondisi pencahayaan berbeda, menunjukkan kemampuan model beradaptasi terhadap variasi visual lingkungan.
+
+\begin{figure}[htbp]
+  \centering
+  \framebox{\parbox{0.8\textwidth}{\centering
+    \vspace{1.5cm}
+    \textbf{[Placeholder Hasil Deteksi]} \\
+    \small\textit{Masukkan contoh gambar hasil deteksi (val\_batch0\_pred.jpg) di sini.}
+    \vspace{1.5cm}
+  }}
+  \caption{Visualisasi hasil deteksi dan segmentasi pada data uji.}
+  \label{fig:detection_results}
+\end{figure}
+
+
