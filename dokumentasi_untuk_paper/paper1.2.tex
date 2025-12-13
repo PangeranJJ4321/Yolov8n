@@ -23,10 +23,10 @@
 \affil{Jurusan Sistem Informasi, Universitas Hasanuddin, Makassar, Indonesia}
 \email{pangeranjuhrifar@gmail.com}
 
-\keywords{Deteksi Lubang Jalan, Estimasi Kedalaman Monokuler, YOLOv8n, DepthAnything V2, Kalman Filter, Smart City, Inspeksi Jalan Otomatis}
+\keywords{Deteksi Lubang Jalan, Estimasi Kedalaman Monokuler, YOLOv8m-seg, DepthAnything V2, Kalman Filter, Smart City, Inspeksi Jalan Otomatis}
 
 \begin{abstract}
-Pemeliharaan jalan yang proaktif sangat penting untuk keselamatan dan efisiensi ekonomi, namun metode inspeksi manual masih bersifat reaktif, subjektif, dan berisiko. Makalah ini menghadirkan sistem terintegrasi untuk deteksi dan pengukuran lubang jalan secara \textit{real-time} menggunakan perangkat \textit{edge}. Sistem memadukan \textbf{YOLOv8n-seg} untuk deteksi dan segmentasi instan, \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler, serta penyaringan temporal untuk stabilitas pengukuran.
+Pemeliharaan jalan yang proaktif sangat penting untuk keselamatan dan efisiensi ekonomi, namun metode inspeksi manual masih bersifat reaktif, subjektif, dan berisiko. Makalah ini menghadirkan sistem terintegrasi untuk deteksi dan pengukuran lubang jalan secara \textit{real-time} menggunakan perangkat \textit{edge}. Sistem memadukan \textbf{YOLOv8m-seg} untuk deteksi dan segmentasi instan, \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler, serta penyaringan temporal untuk stabilitas pengukuran.
 
 \textit{Pipeline} mencakup: (1) deteksi lubang dengan segmentasi instansi; (2) estimasi kedalaman dan pemulihan skala berbasis tinggi kamera untuk memperoleh ukuran metrik absolut; (3) pengukuran diameter dan kedalaman menggunakan statistik robust dan penyesuaian mask; (4) pelacakan BoT-SORT dan penyaringan \textbf{Confidence and Distance Kalman Filter (CDKF)} untuk menstabilkan estimasi; (5) pelaporan otomatis melalui REST API.
 
@@ -45,7 +45,7 @@ Pendekatan sensor 3D seperti LiDAR atau stereo mampu menghasilkan kedalaman yang
 
 Makalah ini mengusulkan sebuah sistem terintegrasi yang menggabungkan model deteksi modern dengan estimasi kedalaman dan penyaringan temporal untuk menghasilkan pengukuran lubang jalan yang stabil dan akurat. Kontribusi utama penelitian ini adalah:
 \begin{enumerate}
-    \item Sistem deteksi \textit{real-time} berbasis \textbf{YOLOv8n-seg} dengan segmentasi instansi untuk akurasi area yang lebih tinggi.
+    \item Sistem deteksi \textit{real-time} berbasis \textbf{YOLOv8m-seg} dengan segmentasi instansi untuk akurasi area yang lebih tinggi.
     \item Modul estimasi kedalaman monokuler menggunakan \textbf{DepthAnything V2} dengan pemulihan skala berbasis tinggi kamera.
     \item Teknik pengukuran berbasis statistik robust dan \textit{ellipse fitting} pada mask segmentasi untuk memperoleh diameter dan kedalaman metrik.
     \item Integrasi \textbf{BoT-SORT} dan \textbf{Confidence and Distance Kalman Filter (CDKF)} untuk memastikan konsistensi temporal pengukuran.
@@ -56,7 +56,7 @@ Sisa makalah disusun sebagai berikut: Bagian II menjelaskan metodologi, Bagian I
 
 \section{Metode}
 
-Kerangka kerja yang diusulkan dirancang sebagai sistem terintegrasi untuk mendeteksi lubang jalan, menghitung karakteristik fisiknya, dan menyampaikan hasil pengukuran secara otomatis. Gambar~1 menunjukkan alur lengkap pipeline. Pertama, aliran video yang diperoleh dari kamera diproses oleh modul deteksi berbasis YOLOv8n-seg untuk mengidentifikasi lokasi lubang jalan dan menghasilkan representasi mask segmentasi yang presisi. Hasil deteksi ini kemudian diolah oleh algoritma BoT-SORT, yang menetapkan identitas unik bagi setiap lubang dan mempertahankan konsistensi pelacakan antar-frame.
+Kerangka kerja yang diusulkan dirancang sebagai sistem terintegrasi untuk mendeteksi lubang jalan, menghitung karakteristik fisiknya, dan menyampaikan hasil pengukuran secara otomatis. Gambar~1 menunjukkan alur lengkap pipeline. Pertama, aliran video yang diperoleh dari kamera diproses oleh modul deteksi berbasis YOLOv8m-seg untuk mengidentifikasi lokasi lubang jalan dan menghasilkan representasi mask segmentasi yang presisi. Hasil deteksi ini kemudian diolah oleh algoritma BoT-SORT, yang menetapkan identitas unik bagi setiap lubang dan mempertahankan konsistensi pelacakan antar-frame.
 
 Secara paralel, frame yang sama dianalisis oleh model estimasi kedalaman monokuler DepthAnything V2 untuk menghasilkan peta kedalaman secara densitas penuh. Informasi kedalaman dan segmentasi selanjutnya digabungkan dalam tahap pengukuran geometris, di mana diameter serta kedalaman lubang dihitung melalui pendekatan statistik yang dirancang untuk meminimalkan pengaruh \textit{noise}. Hasil pengukuran yang telah distabilkan diproses lebih lanjut dan dikemas dalam format terstruktur sebelum dikirimkan ke server melalui API untuk keperluan pemantauan atau pengambilan keputusan.
 
@@ -81,14 +81,14 @@ Sistem ini menggunakan kamera telepon seluler sebagai sumber utama akuisisi vide
 
 Kalibrasi kamera dilakukan menggunakan model kamera \textit{pinhole}. Parameter intrinsik yang meliputi matriks kamera $K$ serta koefisien distorsi $D$ diperoleh melalui proses kalibrasi menggunakan pola papan catur (\textit{checkerboard}) yang direkam langsung oleh kamera ponsel. Proses ini menghasilkan estimasi koefisien distorsi radial ($k_1, k_2, k_3$) dan distorsi tangensial ($p_1, p_2$), yang kemudian digunakan untuk memetakan ulang piksel sehingga menghasilkan citra yang telah terkoreksi secara geometris.
 
-Setelah koreksi distorsi, citra kemudian dinormalisasi ukurannya sesuai kebutuhan masing-masing model. Frame untuk deteksi lubang diubah menjadi $640 \times 640$ piksel untuk kompatibilitas dengan arsitektur YOLOv8n-seg, sedangkan frame untuk estimasi kedalaman dipertahankan pada resolusi asli kamera atau disesuaikan menjadi $518 \times 518$ piksel mengikuti konfigurasi DepthAnything V2. Pemisahan jalur resolusi ini memastikan kedua model menerima kualitas informasi visual yang optimal tanpa mengorbankan detail tekstur yang diperlukan dalam rekonstruksi kedalaman.
+Setelah koreksi distorsi, citra kemudian dinormalisasi ukurannya sesuai kebutuhan masing-masing model. Frame untuk deteksi lubang diubah menjadi $640 \times 640$ piksel untuk kompatibilitas dengan arsitektur YOLOv8m-seg, sedangkan frame untuk estimasi kedalaman dipertahankan pada resolusi asli kamera atau disesuaikan menjadi $518 \times 518$ piksel mengikuti konfigurasi DepthAnything V2. Pemisahan jalur resolusi ini memastikan kedua model menerima kualitas informasi visual yang optimal tanpa mengorbankan detail tekstur yang diperlukan dalam rekonstruksi kedalaman.
 
 \subsection{Arsitektur Model Deteksi dan Segmentasi}
-Tahap deteksi lubang jalan dilakukan menggunakan model \textbf{YOLOv8n-seg}, yaitu varian ringan dari keluarga YOLOv8 yang dirancang khusus untuk kebutuhan segmentasi instans dengan latensi sangat rendah. Model ini dipilih karena memiliki keseimbangan optimal antara akurasi dan kecepatan, sehingga memungkinkan proses inferensi secara \textit{real-time} pada perangkat kelas konsumen seperti ponsel atau \textit{edge device} berperforma terbatas.
+Tahap deteksi lubang jalan dilakukan menggunakan model \textbf{YOLOv8m-seg}, yaitu varian medium dari keluarga YOLOv8 yang dirancang khusus untuk kebutuhan segmentasi instans dengan keseimbangan akurasi yang lebih baik. Model ini dipilih karena memiliki keseimbangan optimal antara akurasi dan kecepatan, sehingga memungkinkan proses inferensi secara \textit{real-time} pada perangkat kelas konsumen seperti ponsel atau \textit{edge device} berperforma terbatas.
 
 Pelatihan model dilakukan melalui pendekatan \textit{transfer learning} dengan menggunakan bobot pra-latih pada dataset COCO sebagai titik awal, kemudian di-\textit{fine-tune} menggunakan dataset lubang jalan yang terdiri dari kombinasi data publik dan data lokal. Pendekatan ini memungkinkan model mengadaptasi pola tekstur jalan dan kontur lubang dengan lebih cepat tanpa memerlukan pelatihan dari awal.
 
-Berbeda dengan model deteksi berbasis kotak batas konvensional, YOLOv8n-seg tidak hanya memberikan prediksi \textit{bounding box} $(x, y, w, h)$, tetapi juga menghasilkan \textbf{mask segmentasi instans} yang mengikuti bentuk lubang jalan secara presisi. Masker ini sangat penting dalam pipeline pengukuran, karena:
+Berbeda dengan model deteksi berbasis kotak batas konvensional, YOLOv8m-seg tidak hanya memberikan prediksi \textit{bounding box} $(x, y, w, h)$, tetapi juga menghasilkan \textbf{mask segmentasi instans} yang mengikuti bentuk lubang jalan secara presisi. Masker ini sangat penting dalam pipeline pengukuran, karena:
 
 \begin{enumerate}
     \item menghilangkan area latar belakang yang dapat mengganggu estimasi kedalaman,
@@ -96,7 +96,7 @@ Berbeda dengan model deteksi berbasis kotak batas konvensional, YOLOv8n-seg tida
     \item memungkinkan pengukuran diameter melalui \textit{ellipse fitting} yang lebih akurat dibandingkan pendekatan berbasis bounding box.
 \end{enumerate}
 
-Dengan demikian, YOLOv8n-seg berfungsi sebagai fondasi utama yang menyediakan area \textit{Region of Interest} (ROI) berkualitas tinggi untuk tahap estimasi kedalaman dan pengukuran dimensi fisik pada langkah-langkah berikutnya.
+Dengan demikian, YOLOv8m-seg berfungsi sebagai fondasi utama yang menyediakan area \textit{Region of Interest} (ROI) berkualitas tinggi untuk tahap estimasi kedalaman dan pengukuran dimensi fisik pada langkah-langkah berikutnya.
 
 \subsection{Estimasi Kedalaman Monokuler dan Pemulihan Skala}
 Untuk mendapatkan informasi 3D dari citra 2D, kami menggunakan \textbf{DepthAnything V2} \cite{depthanything2024}, sebuah model berbasis \textit{Dense Prediction Transformer} (DPT) yang mampu menghasilkan peta kedalaman (\textit{depth map}) yang detail dan tahan terhadap variasi tekstur. Namun, model ini secara inheren menghasilkan kedalaman relatif (\textit{up-to-scale}) yang tidak memiliki satuan metrik \cite{florea2025}.
@@ -112,7 +112,7 @@ dimana $\theta$ adalah sudut \textit{pitch} kamera, dan $D_{rel}[ROI_{road}]$ ad
 \subsection{Pengukuran Dimensi Lubang dengan Statistik Robust}
 Peta kedalaman yang dihasilkan oleh model monokuler seringkali mengandung \textit{noise} dan anomali, terutama pada area transisi atau objek dengan tekstur kompleks. Untuk memastikan pengukuran dimensi lubang yang akurat dan andal, kami mengadopsi pendekatan statistik robust. Metode ini dirancang untuk meminimalkan dampak \textit{outlier} dan variasi data yang tidak diinginkan, sehingga menghasilkan estimasi yang lebih stabil dan representatif.
 
-Secara spesifik, pengukuran diameter lubang didasarkan pada analisis \textit{segmentation mask} yang dihasilkan oleh YOLOv8n-seg. Dari mask ini, dimensi spasial seperti panjang dan lebar maksimum dapat diekstraksi, atau bahkan fitting elips untuk mendapatkan sumbu mayor dan minor. Sementara itu, estimasi kedalaman lubang memanfaatkan nilai median dari distribusi kedalaman piksel dalam area yang relevan, yang secara efektif mereduksi pengaruh \textit{noise} dan memastikan bahwa kedalaman yang dilaporkan mencerminkan kondisi sebenarnya dari lubang. Penerapan teknik pemfilteran temporal dan statistik robust semacam ini telah terbukti efektif dalam meningkatkan ketahanan pengukuran kedalaman monokuler terhadap inkonsistensi frame-to-frame \cite{wang2025}.
+Secara spesifik, pengukuran diameter lubang didasarkan pada analisis \textit{segmentation mask} yang dihasilkan oleh YOLOv8m-seg. Dari mask ini, dimensi spasial seperti panjang dan lebar maksimum dapat diekstraksi, atau bahkan fitting elips untuk mendapatkan sumbu mayor dan minor. Sementara itu, estimasi kedalaman lubang memanfaatkan nilai median dari distribusi kedalaman piksel dalam area yang relevan, yang secara efektif mereduksi pengaruh \textit{noise} dan memastikan bahwa kedalaman yang dilaporkan mencerminkan kondisi sebenarnya dari lubang. Penerapan teknik pemfilteran temporal dan statistik robust semacam ini telah terbukti efektif dalam meningkatkan ketahanan pengukuran kedalaman monokuler terhadap inkonsistensi frame-to-frame \cite{wang2025}.
 
 Secara matematis, estimasi diameter ($D$) dan kedalaman efektif ($H$) diformulasikan sebagai berikut:
 
@@ -186,7 +186,11 @@ Pendekatan ini meminimalkan latensi sistem dan mencegah \textit{bottleneck} I/O,
 
 \section{Eksperimen dan Hasil}
 
-\subsection{Hasil}
+\subsection{Performa Deteksi dan Segmentasi (YOLOv8)}
+
+\subsection{Akurasi Pengukuran Dimensi}
+
+\subsection{Performa Sistem Real-time}
 
 \section{Kesimpulan}
 \label{sec:conclusion}
