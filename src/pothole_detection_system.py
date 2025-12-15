@@ -40,13 +40,13 @@ class PotholeMeasurement:
     def to_dict(self) -> dict:
         """Convert ke dictionary untuk serialization"""
         return {
-            'bbox': self.bbox,
-            'confidence': self.confidence,
-            'diameter_cm': self.diameter_cm,
-            'depth_cm': self.depth_cm,
-            'z_surface_m': self.z_surface,
-            'z_base_m': self.z_base,
-            'z_avg_m': self.z_avg
+            'bbox': tuple(map(int, self.bbox)),  # Convert content to standard int
+            'confidence': float(self.confidence),
+            'diameter_cm': float(self.diameter_cm),
+            'depth_cm': float(self.depth_cm),
+            'z_surface_m': float(self.z_surface),
+            'z_base_m': float(self.z_base),
+            'z_avg_m': float(self.z_avg)
         }
 
 
@@ -148,6 +148,10 @@ class PotholeDetectionSystem:
         x2 = min(w, int(x2))
         y2 = min(h, int(y2))
         
+        # Validate dimensions
+        if x2 <= x1 or y2 <= y1:
+            return np.array([]), np.array([])
+            
         # Extract ROI depth
         roi_depth = depth_map[y1:y2, x1:x2]
         
@@ -157,10 +161,17 @@ class PotholeDetectionSystem:
         border_x2 = min(w, x2 + border_width)
         border_y2 = min(h, y2 + border_width)
         
+        # Validate border dimensions
+        border_h = border_y2 - border_y1
+        border_w = border_x2 - border_x1
+        
+        if border_h <= 0 or border_w <= 0:
+             return roi_depth, np.array([])
+        
         border_region = depth_map[border_y1:border_y2, border_x1:border_x2]
         
         # Create border mask (area border tapi bukan ROI)
-        border_mask = np.ones((border_y2 - border_y1, border_x2 - border_x1), dtype=bool)
+        border_mask = np.ones((border_h, border_w), dtype=bool)
         
         # Convert to local coordinates within border region
         local_y1 = max(0, y1 - border_y1)
@@ -498,6 +509,23 @@ class PotholeDetectionSystem:
                 # Color berdasarkan track ID (untuk visualisasi)
                 color = self._get_track_color(track_id)
                 
+                # Draw Mask if available (Overlay)
+                if hasattr(measurement, 'mask') and measurement.mask is not None:
+                     # Resize mask to int if needed (binary 0/1)
+                     mask_binary = (measurement.mask > 0.5).astype(np.uint8)
+                     
+                     # Create colored mask
+                     colored_mask = np.zeros_like(vis_image)
+                     colored_mask[mask_binary == 1] = color
+                     
+                     # Add weighted overlay
+                     alpha = 0.4
+                     vis_image = cv2.addWeighted(vis_image, 1.0, colored_mask, alpha, 0)
+                     
+                     # Draw contours outline
+                     contours, _ = cv2.findContours(mask_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                     cv2.drawContours(vis_image, contours, -1, color, 2)
+                
                 # Draw bounding box dengan track ID
                 cv2.rectangle(vis_image, (x1, y1), (x2, y2), color, 2)
                 
@@ -525,6 +553,24 @@ class PotholeDetectionSystem:
         elif show_measurements and 'measurements' in results:
             for i, measurement in enumerate(results['measurements']):
                 x1, y1, x2, y2 = measurement.bbox
+                
+                # Draw Mask if available
+                if hasattr(measurement, 'mask') and measurement.mask is not None:
+                     mask_binary = (measurement.mask > 0.5).astype(np.uint8)
+                     
+                     # Red color for untracked detections
+                     mask_color = (0, 0, 255) # Red in BGR
+                     
+                     # Create colored mask
+                     colored_mask = np.zeros_like(vis_image)
+                     colored_mask[mask_binary == 1] = mask_color
+                     
+                     # Add weighted overlay
+                     vis_image = cv2.addWeighted(vis_image, 1.0, colored_mask, 0.4, 0)
+                     
+                     # Draw contours outline
+                     contours, _ = cv2.findContours(mask_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                     cv2.drawContours(vis_image, contours, -1, mask_color, 2)
                 
                 # Draw bounding box
                 cv2.rectangle(vis_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -631,21 +677,20 @@ class PotholeDetectionSystem:
                         filtered_d, filtered_h = track.get_filtered_measurements()
                         measurement_dict = track.measurement.to_dict()
                         # Override dengan filtered values
-                        measurement_dict['diameter_cm'] = filtered_d
-                        measurement_dict['depth_cm'] = filtered_h
+                        measurement_dict['diameter_cm'] = float(filtered_d)
+                        measurement_dict['depth_cm'] = float(filtered_h)
                         all_measurements.append({
-                            'frame': frame_count,
-                            'track_id': track.track_id,
-                            'age': track.age,
-                            'hit_streak': track.hit_streak,
+                            'frame': int(frame_count),
+                            'track_id': int(track.track_id),
+                            'age': int(track.age),
+                            'hit_streak': int(track.hit_streak),
                             'is_filtered': True,  # Indikator bahwa ini filtered
                             **measurement_dict
                         })
                 else:
-                    # Store untracked measurements
                     for measurement in results['measurements']:
                         all_measurements.append({
-                            'frame': frame_count,
+                            'frame': int(frame_count),
                             'track_id': None,
                             **measurement.to_dict()
                         })

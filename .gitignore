@@ -29,7 +29,7 @@ datasets/
 *.tar.gz
 
 # Output files
-output/
+# output/
 *.avi
 *.mp4
 *.npy

@@ -9,6 +9,7 @@ Date: 2025
 import cv2
 import numpy as np
 import json
+import yaml
 import torch
 from pathlib import Path
 from typing import Tuple, Optional, Union
@@ -59,8 +60,8 @@ class DepthEstimator:
         
         # Extract camera parameters
         if self.camera_params:
-            self.camera_matrix = self.camera_params['camera_matrix']
-            self.dist_coeffs = self.camera_params['dist_coeffs']
+            self.camera_matrix = np.array(self.camera_params['camera_matrix'])
+            self.dist_coeffs = np.array(self.camera_params['dist_coeffs'])
         else:
             self.camera_matrix = None
             self.dist_coeffs = None
@@ -92,8 +93,14 @@ class DepthEstimator:
         if not calib_path.exists():
             raise FileNotFoundError(f"File kalibrasi tidak ditemukan: {calib_path}")
         
-        with open(calib_path, 'r') as f:
-            calib_data = json.load(f)
+        if calib_path.suffix.lower() in ['.yaml', '.yml']:
+            with open(calib_path, 'r') as f:
+                # Gunakan unsafe_load atau full_load karena file calibration generated
+                # oleh script python kita sendiri menggunakan tuple
+                calib_data = yaml.load(f, Loader=yaml.Loader)
+        else:
+            with open(calib_path, 'r') as f:
+                calib_data = json.load(f)
         
         # Convert ke numpy array
         camera_matrix = np.array(calib_data['camera_matrix'])
@@ -141,20 +148,73 @@ class DepthEstimator:
         # Method 2: Try direct import from cloned repo
         try:
             import sys
-            # Assume repo cloned to depth-anything-v2 folder
-            repo_path = Path("../depth-anything-v2")
-            if repo_path.exists():
-                sys.path.insert(0, str(repo_path))
+            # Search in possible locations
+            possible_paths = [
+                Path("Depth-Anything-V2"),           # In CWD
+                Path("../Depth-Anything-V2"),        # In parent
+                Path(__file__).parent.parent / "Depth-Anything-V2"  # In project root
+            ]
+            
+            repo_path = None
+            for p in possible_paths:
+                if p.exists() and (p / "depth_anything_v2").exists():
+                    repo_path = p
+                    break
+            
+            if repo_path:
+                # print(f"   Found local repo at: {repo_path}")
+                sys.path.insert(0, str(repo_path.absolute()))
                 from depth_anything_v2.dpt import DepthAnythingV2
-                model = DepthAnythingV2(device=self.device, ckpt_path=None, model_type=self.model_type)
-                model.eval()
-                print(f"✅ DepthAnything V2 ({self.model_type}) loaded from local repo")
+                
+                # Model Configurations
+                model_configs = {
+                    'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]},
+                    'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
+                    'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
+                    'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
+                }
+                
+                # Mapping model_type 'small' -> 'vits', etc.
+                type_map = {
+                    'small': 'vits',
+                    'base': 'vitb',
+                    'large': 'vitl',
+                    'giant': 'vitg'
+                }
+                
+                encoder = type_map.get(self.model_type, self.model_type)
+                if encoder not in model_configs:
+                    print(f"⚠️  Unknown model type '{self.model_type}', defaulting to 'vits'")
+                    encoder = 'vits'
+
+                # Instantiate model
+                model = DepthAnythingV2(**model_configs[encoder])
+                
+                # Load Weights
+                weights_path = Path(f"weights/depth_anything_v2_{encoder}.pth")
+                # Also check in project root if running from src
+                if not weights_path.exists():
+                     weights_path = Path(__file__).parent.parent / f"weights/depth_anything_v2_{encoder}.pth"
+                     
+                if weights_path.exists():
+                    print(f"   Loading weights from: {weights_path}")
+                    model.load_state_dict(torch.load(str(weights_path), map_location='cpu'))
+                else:
+                    print(f"❌ Weights file not found: {weights_path}")
+                    print(f"   Please run download_depth_model.py")
+                    raise FileNotFoundError("Weights not found")
+
+                model = model.to(self.device).eval()
+                print(f"✅ DepthAnything V2 ({encoder}) loaded successfully")
                 self.model = model
                 self._model_loaded = True
                 self._using_dummy = False
                 return
+
         except Exception as e:
-            print(f"⚠️  Error dengan local repo: {e}")
+            print(f"⚠️  Error initializing DepthAnything V2: {e}")
+            import traceback
+            traceback.print_exc()
         
         # Method 3: Fallback
         if model is None:
@@ -389,6 +449,10 @@ class DepthEstimator:
         Returns:
             Overlayed image
         """
+        if image.shape[:2] != depth_colored.shape[:2]:
+            h, w = image.shape[:2]
+            depth_colored = cv2.resize(depth_colored, (w, h))
+            
         overlay = cv2.addWeighted(image, 1-alpha, depth_colored, alpha, 0)
         return overlay
     

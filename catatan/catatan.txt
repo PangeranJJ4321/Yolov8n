@@ -167,3 +167,8 @@ Ukur kedalaman & diameter nyata (cm/m)	✅ Ya	                 Butuh tahu skala 
 Mau integrasi DepthAnything + YOLO	    ✅ Ya	                 Supaya hasil depth punya arti fisik
 
 
+Next Move : 
+
+1. Buat Video Test
+2. Update hasil experiment di paper1.4.tex dengan hasil video test
+3. Test web service dengan rekam auto   
