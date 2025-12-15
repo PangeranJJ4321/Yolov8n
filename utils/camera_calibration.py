@@ -49,7 +49,19 @@ def calibrate_camera(images_folder, output_file="camera_params.yaml",
         square_size: Ukuran kotak dalam mm, default: 25
     """
     
-    # Setup
+    # Setup output directory handling
+    output_path = Path(output_file)
+    if len(output_path.parts) == 1:
+        # If just filename provided, use calibration_results folder
+        output_dir = Path("calibration_results")
+        output_file = output_dir / output_file
+    else:
+        # Use the parent directory of the provided output file
+        output_dir = output_path.parent
+        
+    # Create directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"📂 Output akan disimpan di: {output_dir}")
     objp, pattern_size = create_checkerboard_pattern(pattern_size, square_size)
     objpoints = []  # 3D points in real world space
     imgpoints = []  # 2D points in image plane
@@ -99,8 +111,8 @@ def calibrate_camera(images_folder, output_file="camera_params.yaml",
             cv2.drawChessboardCorners(img_with_corners, pattern_size, corners2, ret)
             
             # Save visualization
-            output_viz = f"calibration_viz_{img_path.stem}.jpg"
-            cv2.imwrite(output_viz, img_with_corners)
+            output_viz = output_dir / f"calibration_viz_{img_path.stem}.jpg"
+            cv2.imwrite(str(output_viz), img_with_corners)
             print(f"   ✅ Detected corners - saved: {output_viz}")
         else:
             print(f"   ❌ Tidak ditemukan corners")
@@ -156,21 +168,24 @@ def calibrate_camera(images_folder, output_file="camera_params.yaml",
         yaml.dump(camera_params, f, default_flow_style=False)
     
     # Save as JSON (backup)
-    json_file = output_file.replace('.yaml', '.json')
+    json_file = output_file.with_suffix('.json')
     with open(json_file, 'w') as f:
         json.dump(camera_params, f, indent=2)
     
     print(f"💾 Parameter tersimpan ke: {output_file} dan {json_file}")
     
     # Test undistortion
-    test_undistortion(images_folder, K, dist, output_file)
+    test_undistortion(images_folder, K, dist, output_dir)
     
     return True
 
 
-def test_undistortion(images_folder, K, dist, output_file):
+def test_undistortion(images_folder, K, dist, output_dir):
     """Test undistortion pada beberapa gambar"""
     print("\n🧪 Testing undistortion...")
+    
+    # Ensure output_dir is a Path object
+    output_dir = Path(output_dir)
     
     # Load first image for test
     image_files = list(Path(images_folder).glob('*.jpg'))[:3]  # Test 3 images
@@ -187,8 +202,8 @@ def test_undistortion(images_folder, K, dist, output_file):
         
         # Save comparison
         comparison = np.hstack([img, undistorted])
-        output_name = f"undistort_test_{img_path.stem}.jpg"
-        cv2.imwrite(output_name, comparison)
+        output_name = output_dir / f"undistort_test_{img_path.stem}.jpg"
+        cv2.imwrite(str(output_name), comparison)
         print(f"   📸 Saved: {output_name}")
 
 
@@ -242,7 +257,9 @@ def main():
         print(f"📏 Reprojection error: {params['reprojection_error']:.3f}")
         
         # Test undistortion
-        test_undistortion(args.images, K, dist, args.load)
+        output_dir = Path(args.load).parent if Path(args.load).parent.name else Path("calibration_results")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        test_undistortion(args.images, K, dist, output_dir)
     else:
         # Perform calibration
         if not os.path.exists(args.images):

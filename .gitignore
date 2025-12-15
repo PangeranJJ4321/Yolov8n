@@ -4,6 +4,10 @@
 /env
 .venv
 
+# Camera calibration
+/calibration_results
+/calibration_images
+
 # Python
 __pycache__/
 *.py[cod]

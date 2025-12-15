@@ -126,6 +126,7 @@ dimana $L_{major}$ adalah sumbu mayor dari elips yang di-fitting pada mask luban
 
 
 \subsubsection{Estimasi Kedalaman Lubang}
+\mbox{}\\
 Kedalaman lubang ($d_{pothole}$) secara formal didefinisikan sebagai selisih jarak ortogonal antara bidang permukaan jalan rata-rata ($Z_{surface}$) dan taksiran dasar lubang ($Z_{base}$). Mengingat sifat \textit{noisy} dari estimasi kedalaman monokuler, pendekatan statistik digunakan untuk kedua variabel:
 
 \begin{equation}
@@ -145,6 +146,7 @@ d_{pothole} = Z_{surface} - Z_{base}
 \end{itemize}
 
 \subsubsection{Estimasi Diameter}
+\mbox{}\\
 Estimasi diameter ($D$) dilakukan dengan memanfaatkan \textit{segmentation mask} yang dihasilkan oleh YOLOv8. Untuk mendapatkan representasi bentuk yang akurat, kami menerapkan algoritma \textit{ellipse fitting} berbasis \textit{Least Squares} pada kontur mask, yang menghasilkan sumbu mayor piksel ($L_{px}$). Metode ini lebih unggul dibandingkan penggunaan \textit{bounding box} sederhana karena mampu mengikuti orientasi dan bentuk ireguler lubang jalan \cite{singh2021}.
 
 Jika mask tidak tersedia, sistem secara otomatis beralih menggunakan lebar \textit{bounding box} ($w_{bbox}$) sebagai estimasi konservatif. Konversi dari satuan piksel ke satuan metrik (cm) dilakukan menggunakan prinsip proyeksi perspektif kamera \textit{pinhole}:
@@ -198,7 +200,7 @@ Bagian ini menyajikan evaluasi komprehensif terhadap sistem yang diusulkan. Eval
 Analisis performa deteksi dan segmentasi meninjau dua aspek fundamental: konfigurasi pelatihan teknis dan hasil evaluasi metrik kuantitatif. Evaluasi ini bertujuan memvalidasi kemampuan model dalam mengisolasi area lubang jalan (\textit{Region of Interest}) secara akurat serta membedakannya dari fitur jalan lain (seperti \textit{manhole}), yang merupakan prasyarat kritis sebelum estimasi dimensi dilakukan.
 
 \subsubsection{Konfigurasi Pelatihan dan Strategi Optimasi}
-
+\mbox{}\\
 Berdasarkan eksperimen awal, arsitektur \textbf{YOLOv8m-seg} (\textit{Medium}) dipilih sebagai \textit{backbone} utama, menggantikan varian Nano yang kurang responsif terhadap fitur halus. Varian Medium menawarkan keseimbangan optimal antara kedalaman ekstraksi fitur (25.9 juta parameter) dan latensi inferensi, yang krusial untuk menangani tekstur aspal yang heterogen.
 
 Pelatihan dilakukan menggunakan akselerator \textbf{NVIDIA GeForce RTX 4060 Ti} (16GB VRAM) dengan kerangka kerja PyTorch 2.5.1. Strategi pelatihan dirancang untuk memaksimalkan generalisasi model:
@@ -219,7 +221,7 @@ Kurva pelatihan (Gambar~\ref{fig:training_loss}) menunjukkan konvergensi yang st
 \end{figure}
 
 \subsubsection{Evaluasi Metrik Kuantitatif dan Kualitatif}
-
+\mbox{}\\
 Evaluasi dilakukan pada dataset validasi berisi 300 citra dengan total 565 instansi objek. Tabel~\ref{tab:yolo_metrics} merangkum kinerja model berdasarkan metrik standar COCO. Secara agregat, model mencapai \textit{Mean Average Precision} (mAP) pada ambang batas IoU 0,5 sebesar \textbf{0,789}, yang menunjukkan ketahanan model yang tinggi.
 
 \begin{table}[h]
@@ -248,7 +250,7 @@ Gambar~\ref{fig:detection_results} memvisualisasikan ketahanan model terhadap va
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{../runs/segment/yolov8m-seg-custom/val_batch0_pred.jpg}
+  \includegraphics[width=\textwidth]{images/val_batch1_pred.jpg}
   \caption{Visualisasi hasil deteksi dan segmentasi pada data uji (validasi). Model berhasil memprediksi bounding box dan masker segmentasi untuk lubang jalan dengan akurasi tinggi.}
   \label{fig:detection_results}
 \end{figure}
