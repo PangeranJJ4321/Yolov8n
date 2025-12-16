@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pothole Detection System - Solarized Console</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        solarized: {
+                            base3: '#fdf6e3',  // Background utama
+                            base2: '#eee8d5',  // Background panel/highlight
+                            base1: '#93a1a1',  // Komentar/Secondary text
+                            base00: '#657b83', // Text utama
+                            base01: '#586e75', // Text emphasis
+                            yellow: '#b58900',
+                            orange: '#cb4b16',
+                            red: '#dc322f',
+                            magenta: '#d33682',
+                            violet: '#6c71c4',
+                            blue: '#268bd2',
+                            cyan: '#2aa198',
+                            green: '#859900',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar agar sesuai tema */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #eee8d5; }
+        ::-webkit-scrollbar-thumb { background: #93a1a1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #657b83; }
+    </style>
+</head>
+<body class="bg-solarized-base3 text-solarized-base00 font-sans min-h-screen flex flex-col">
+
+    <nav class="bg-white/80 backdrop-blur-md border-b border-solarized-base2 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-solarized-blue rounded-lg flex items-center justify-center text-white shadow-lg">
+                        <i class="fa-solid fa-road"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-solarized-base01">Pothole<span class="text-solarized-blue">Detect</span></span>
+                </div>
+                <div class="text-sm font-medium text-solarized-base1 bg-solarized-base2 px-3 py-1 rounded-full">
+                    <i class="fa-solid fa-circle-dot text-solarized-green animate-pulse mr-2"></i>System Ready
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow p-4 lg:p-8 max-w-7xl mx-auto w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+            
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-solarized-base2 overflow-hidden">
+                    <div class="p-4 border-b border-solarized-base2 flex justify-between items-center bg-solarized-base2/30">
+                        <h2 class="font-semibold text-lg text-solarized-base01"><i class="fa-solid fa-video mr-2 text-solarized-blue"></i>Live Feed</h2>
+                        <span class="text-xs text-solarized-base1 bg-solarized-base2 px-2 py-0.5 rounded">Camera Input</span>
+                    </div>
+                    
+                    <div class="relative bg-black aspect-video flex items-center justify-center group">
+                        <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+                        
+                        <div id="loading-indicator" class="absolute inset-0 bg-black/70 hidden flex-col items-center justify-center z-10 backdrop-blur-sm">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-solarized-blue mb-3"></div>
+                            <p class="text-white font-medium animate-pulse">Processing AI Models...</p>
+                            <p class="text-solarized-base1 text-sm mt-1">YOLOv8 + DepthAnything V2</p>
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-white">
+                        <div class="flex gap-4">
+                            <button id="btn-start" onclick="startCamera()" class="flex-1 bg-solarized-base2 hover:bg-solarized-base1 text-solarized-base01 font-semibold py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-sm">
+                                <i class="fa-solid fa-power-off"></i> Start Camera
+                            </button>
+                            <button id="btn-capture" onclick="captureAndDetect()" disabled class="flex-1 bg-solarized-blue hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30">
+                                <i class="fa-solid fa-camera"></i> Detect Pothole
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-white p-4 rounded-xl border border-solarized-base2 shadow-sm text-center">
+                        <div class="text-solarized-base1 text-xs uppercase font-bold tracking-wider mb-1">Count</div>
+                        <div id="count-val" class="text-3xl font-bold text-solarized-magenta">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-solarized-base2 shadow-sm text-center">
+                        <div class="text-solarized-base1 text-xs uppercase font-bold tracking-wider mb-1">Max Depth</div>
+                        <div id="max-depth-val" class="text-2xl font-bold text-solarized-orange">0 <span class="text-sm">cm</span></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-solarized-base2 shadow-sm text-center">
+                        <div class="text-solarized-base1 text-xs uppercase font-bold tracking-wider mb-1">Max Diam</div>
+                        <div id="max-diam-val" class="text-2xl font-bold text-solarized-violet">0 <span class="text-sm">cm</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-solarized-base2 flex-grow flex flex-col overflow-hidden">
+                    
+                    <div class="p-4 border-b border-solarized-base2 bg-solarized-base2/30">
+                        <h3 class="font-semibold text-solarized-base01"><i class="fa-solid fa-chart-pie mr-2 text-solarized-green"></i>Analysis Output</h3>
+                    </div>
+
+                    <div class="p-4 overflow-y-auto max-h-[500px] space-y-4">
+                        
+                        <div class="rounded-lg overflow-hidden border border-solarized-base2 bg-solarized-base2 min-h-[150px] flex items-center justify-center relative">
+                            <span class="text-solarized-base1 text-sm absolute">No detection result yet</span>
+                            <img id="result-image" alt="Detection Result" class="w-full h-auto relative z-10 hidden" />
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-end mb-2">
+                                <label class="text-xs font-bold text-solarized-base1 uppercase">Raw Data (JSON)</label>
+                                <span class="text-xs text-solarized-cyan bg-solarized-base2 px-2 py-0.5 rounded">read-only</span>
+                            </div>
+                            <div class="bg-solarized-base3 rounded-lg border border-solarized-base2 p-3 overflow-hidden">
+                                <pre id="results-json" class="text-xs font-mono text-solarized-base01 whitespace-pre-wrap overflow-x-auto max-h-40">Waiting for data...</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-auto py-6 text-center text-solarized-base1 text-sm">
+        <p>&copy; 2024 Pothole Detection System | Powered by YOLOv8</p>
+    </footer>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const btnCapture = document.getElementById('btn-capture');
+        const imgResult = document.getElementById('result-image');
+        const jsonResult = document.getElementById('results-json');
+        const loading = document.getElementById('loading-indicator');
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                btnCapture.disabled = false;
+                // Visual feedback that camera is active
+                document.getElementById('btn-start').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('btn-start').innerHTML = '<i class="fa-solid fa-check"></i> Camera Active';
+            } catch (err) {
+                alert("Error accessing camera: " + err);
+            }
+        }
+
+        async function captureAndDetect() {
+            // Create canvas to capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            // Convert to blob
+            canvas.toBlob(async (blob) => {
+                uploadImage(blob);
+            }, 'image/jpeg');
+        }
+
+        async function uploadImage(blob) {
+            loading.style.display = 'flex'; // Changed to flex for centering
+            
+            const formData = new FormData();
+            formData.append('file', blob, 'webcam-capture.jpg');
+
+            try {
+                // Determine API URL (relative)
+                const response = await fetch('/detect/image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update Image
+                    imgResult.src = data.processed_image_url + '?t=' + new Date().getTime(); // Prevent caching
+                    imgResult.style.display = 'block';
+                    // Hide placeholder text behind image
+                    imgResult.previousElementSibling.style.display = 'none';
+                    
+                    // Update JSON
+                    jsonResult.textContent = JSON.stringify(data.measurements, null, 2);
+                    
+                    // Update Stats
+                    const count = data.pothole_count;
+                    // Animation effect for number update could be added here
+                    document.getElementById('count-val').textContent = count;
+                    
+                    if (count > 0) {
+                        const maxDepth = Math.max(...data.measurements.map(m => m.depth_cm));
+                        const maxDiam = Math.max(...data.measurements.map(m => m.diameter_cm));
+                        document.getElementById('max-depth-val').innerHTML = maxDepth.toFixed(1) + ' <span class="text-sm">cm</span>';
+                        document.getElementById('max-diam-val').innerHTML = maxDiam.toFixed(1) + ' <span class="text-sm">cm</span>';
+                    } else {
+                        document.getElementById('max-depth-val').innerHTML = '0 <span class="text-sm">cm</span>';
+                        document.getElementById('max-diam-val').innerHTML = '0 <span class="text-sm">cm</span>';
+                    }
+
+                } else {
+                    jsonResult.textContent = 'Error: ' + JSON.stringify(data);
+                }
+            } catch (err) {
+                jsonResult.textContent = 'Request Failed: ' + err;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

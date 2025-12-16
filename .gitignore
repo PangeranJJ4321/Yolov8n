@@ -30,6 +30,7 @@ datasets/
 
 # Output files
 # output/
+Depth-Anything-V2/
 *.avi
 *.mp4
 *.npy

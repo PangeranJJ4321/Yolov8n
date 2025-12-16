@@ -33,7 +33,7 @@ def main():
     calib_path = base_dir / "calibration_results/camera_params.yaml"
     
     # Path Output
-    output_dir = base_dir / "output/sem_test_results"
+    output_dir = base_dir / "output/final_test_results"
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Verify Paths
@@ -55,7 +55,7 @@ def main():
             yolo_model_path=model_path,
             depth_model_type="small",      # Gunakan small agar cepat
             camera_calib_path=calib_path,
-            camera_height=1.5,             # Asumsi tinggi kamera 1.5 meter
+            camera_height=1.25,            # Asumsi tinggi kamera 1.25 meter (Sesuai Final Test)
             conf_threshold=0.25,
             enable_tracking=True
         )
@@ -65,8 +65,8 @@ def main():
         
     # 3. Test Video Processing
     print("\n🎬 Running Video Test...")
-    video_path = base_dir / "datasets/potholes_video/pothole_video.mp4"
-    output_video = output_dir / "detected_video.avi"
+    video_path = base_dir / "final-test/video4.mp2"
+    output_video = output_dir / "detected_video4.avi"
     
     if video_path.exists():
         system.process_video(
@@ -82,12 +82,9 @@ def main():
         
     # 4. Test Single Image Processing (Salah satu contoh dari test dataset)
     print("\n📸 Running Single Image Test...")
-    test_images_dir = base_dir / "datasets/potholes_raw/test/images"
-    # Ambil gambar pertama yang ditemukan
-    image_files = list(test_images_dir.glob("*.jpg"))
+    test_img_path = base_dir / "final-test/terakhir1.jpeg"
     
-    if image_files:
-        test_img_path = image_files[0]
+    if test_img_path.exists():
         img = cv2.imread(str(test_img_path))
         
         if img is not None:

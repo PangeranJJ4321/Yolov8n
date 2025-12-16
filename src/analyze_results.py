@@ -132,8 +132,8 @@ def analyze_results(json_path: str, output_dir: str):
         print("   Saved track_stability_depth.png")
 
 if __name__ == "__main__":
-    # Adjust paths as needed
-    JSON_FILE = "output/sem_test_results/pothole_video_measurements.json"
-    OUTPUT_DIR = "output/analysis_plots"
+    # Adjust paths    # Configuration
+    JSON_FILE = "output/final_test_results/video4_measurements.json"
+    OUTPUT_DIR = "output/final_analysis_plots"
     
     analyze_results(JSON_FILE, OUTPUT_DIR)

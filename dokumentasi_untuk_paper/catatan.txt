@@ -1,0 +1,2 @@
+paper1.4.tex adalah file final paper untuk penyajian hasil penelitian.
+paper1.5.tex adalah file draft paper penyesuaian dan penyempurnaan.

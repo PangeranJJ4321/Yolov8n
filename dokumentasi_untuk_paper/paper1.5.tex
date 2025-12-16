@@ -14,28 +14,76 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{float}
+\usepackage{microtype} % Improves justification
+\usepackage{ragged2e} % Provides \justify
+\usepackage{fancyhdr} % Custom headers
+\usepackage{indentfirst} % Indent first paragraph after section
+\usepackage{titlesec} % Control section spacing
+
+% --- Spacing Configuration ---
+% Add space after section/subsection and before the paragraph
+\titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}
+\titlespacing*{\subsection}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}
+\titlespacing*{\subsubsection}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}
+% -----------------------------
+
+% --- Header Configuration ---
+\setlength{\headheight}{25pt} 
+\pagestyle{fancy}
+\fancyhf{} % Clear default headers/footers
+% Left Header: Logo + Text
+% Note: User needs to provide 'images/logo_unhas.png'
+\lhead{
+    \begin{minipage}{0.6\textwidth}
+        \raisebox{-0.3\height}{\includegraphics[height=0.8cm]{images/Logo-Resmi-Unhas-1.png}} 
+        \hspace{0.2cm} 
+        \textbf{Universitas Hasanuddin}
+    \end{minipage}
+}
+% Right Header: Author et al.
+\rhead{\textit{Jafar et al.}}
+% Footer: Page number
+\cfoot{\thepage}
+
+% Redefine plain style (usually used on first page) to match
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \lhead{
+    \begin{minipage}{0.6\textwidth}
+        \raisebox{-0.3\height}{\includegraphics[height=0.8cm]{images/Logo-Resmi-Unhas-1.png}} 
+        \hspace{0.2cm} 
+        \textbf{Universitas Hasanuddin}
+    \end{minipage}
+  }
+  \rhead{\textit{Jafar et al.}}
+  \cfoot{\thepage}
+  \renewcommand{\headrulewidth}{0.4pt}
+}
+% ---------------------------
 
 \begin{document}
 
 \articletype{Paper}
 
-\title{Sistem Terintegrasi Deteksi dan Pengukuran Lubang Jalan Menggunakan YOLOv8 dan DepthAnything V2 dengan Filter Temporal}
+\title{\Huge Sistem Terintegrasi Deteksi dan Pengukuran Lubang Jalan Menggunakan YOLOv8 dan DepthAnything V2 dengan Filter Temporal}
 
 \author{Pangeran Juhrifar Jafar}
-\affil{Jurusan Sistem Informasi, Universitas Hasanuddin, Makassar, Indonesia}
-\email{pangeranjuhrifar@gmail.com}
+\address{Jurusan Sistem Informasi, Universitas Hasanuddin, Makassar, Indonesia}
+\ead{pangeranjuhrifar@gmail.com}
 
 \keywords{Deteksi Lubang Jalan, Estimasi Kedalaman Monokuler, YOLOv8m-seg, DepthAnything V2, Kalman Filter, Smart City, Inspeksi Jalan Otomatis}
 
 \begin{abstract}
-Pemeliharaan jalan yang proaktif sangat penting untuk keselamatan dan efisiensi ekonomi, namun metode inspeksi manual masih bersifat reaktif, subjektif, dan berisiko. Makalah ini menghadirkan sistem terintegrasi untuk deteksi dan pengukuran lubang jalan secara mendekati waktu nyata (\textit{near real-time}) menggunakan perangkat \textit{edge}. Sistem memadukan \textbf{YOLOv8m-seg} untuk deteksi dan segmentasi instan, \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler, serta penyaringan temporal untuk stabilitas pengukuran.
+\justify
+\hspace{1.5em}Pemeliharaan jalan yang proaktif sangat penting untuk keselamatan dan efisiensi ekonomi, namun metode inspeksi manual masih bersifat reaktif, subjektif, dan berisiko. Makalah ini menghadirkan sistem terintegrasi untuk deteksi dan pengukuran lubang jalan secara mendekati waktu nyata (\textit{near real-time}) menggunakan perangkat \textit{edge}. Sistem memadukan \textbf{YOLOv8m-seg} untuk deteksi dan segmentasi instan, \textbf{DepthAnything V2} untuk estimasi kedalaman monokuler, serta penyaringan temporal untuk stabilitas pengukuran.
 
-\textit{Pipeline} mencakup: (1) deteksi lubang dengan segmentasi instansi; (2) estimasi kedalaman dan pemulihan skala berbasis tinggi kamera untuk memperoleh ukuran metrik absolut; (3) pengukuran diameter dan kedalaman menggunakan statistik robust dan penyesuaian mask; (4) pelacakan BoT-SORT dan penyaringan \textbf{Confidence and Distance Kalman Filter (CDKF)} untuk menstabilkan estimasi; (5) pelaporan otomatis melalui REST API.
+\hspace{1.5em}\textit{Pipeline} mencakup: (1) deteksi lubang dengan segmentasi instansi; (2) estimasi kedalaman dan pemulihan skala berbasis tinggi kamera untuk memperoleh ukuran metrik absolut; (3) pengukuran diameter dan kedalaman menggunakan statistik robust dan penyesuaian mask; (4) pelacakan BoT-SORT dan penyaringan \textbf{Confidence and Distance Kalman Filter (CDKF)} untuk menstabilkan estimasi; (5) pelaporan otomatis melalui REST API.
 
 Evaluasi menunjukkan bahwa sistem mampu beroperasi secara efisien dengan kecepatan inferensi rata-rata \textbf{14--15 FPS} pada perangkat kelas konsumen. Meskipun akurasi kedalaman absolut masih dipengaruhi oleh asumsi kalibrasi, sistem menunjukkan konsistensi pengukuran relatif yang tinggi, memungkinkan klasifikasi tingkat keparahan kerusakan yang andal. Hasil ini menegaskan kelayakan sistem sebagai solusi inspeksi jalan cerdas yang hemat biaya dan cukup responsif untuk skenario pemeliharaan di lingkungan \textit{smart city}.
 \end{abstract}
 
 
+\justify % Force justification for the entire document body
 \section{Pendahuluan}
 \label{sec:introduction}
 
@@ -58,18 +106,28 @@ Sisa makalah disusun sebagai berikut: Bagian II menjelaskan metodologi, Bagian I
 
 \section{Metode}
 
-Kerangka kerja yang diusulkan dirancang sebagai sistem terintegrasi untuk mendeteksi lubang jalan, menghitung karakteristik fisiknya, dan menyampaikan hasil pengukuran secara otomatis. Gambar~1 menunjukkan alur lengkap pipeline. Pertama, aliran video yang diperoleh dari kamera diproses oleh modul deteksi berbasis YOLOv8m-seg untuk mengidentifikasi lokasi lubang jalan dan menghasilkan representasi mask segmentasi yang presisi. Hasil deteksi ini kemudian diolah oleh algoritma BoT-SORT, yang menetapkan identitas unik bagi setiap lubang dan mempertahankan konsistensi pelacakan antar-frame.
+Kerangka kerja yang diusulkan dirancang sebagai sistem terintegrasi untuk mendeteksi lubang jalan, menghitung karakteristik fisiknya, dan menyampaikan hasil pengukuran secara otomatis. Gambar~\ref{fig:pipeline_diagram} menunjukkan alur lengkap pipeline. Pertama, aliran video yang diperoleh dari kamera diproses oleh modul deteksi berbasis YOLOv8m-seg untuk mengidentifikasi lokasi lubang jalan dan menghasilkan representasi mask segmentasi yang presisi. Hasil deteksi ini kemudian diolah oleh algoritma BoT-SORT, yang menetapkan identitas unik bagi setiap lubang dan mempertahankan konsistensi pelacakan antar-frame.
 
 Secara paralel, frame yang sama dianalisis oleh model estimasi kedalaman monokuler DepthAnything V2 untuk menghasilkan peta kedalaman secara densitas penuh. Informasi kedalaman dan segmentasi selanjutnya digabungkan dalam tahap pengukuran geometris, di mana diameter serta kedalaman lubang dihitung melalui pendekatan statistik yang dirancang untuk meminimalkan pengaruh \textit{noise}. Hasil pengukuran yang telah distabilkan diproses lebih lanjut dan dikemas dalam format terstruktur sebelum dikirimkan ke server melalui API untuk keperluan pemantauan atau pengambilan keputusan.
 
-Gambar~1: Diagram alur keseluruhan kerangka kerja yang diusulkan.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/pipline sistem.png}
+    \caption{Diagram alur keseluruhan kerangka kerja yang diusulkan. Pipeline terdiri dari dua cabang pemrosesan paralel: deteksi instans menggunakan YOLOv8m-seg dan estimasi kedalaman menggunakan DepthAnything V2. Hasil dari kedua model digabungkan (sensor fusion) dengan pemulihan skala berbasis ketinggian kamera. Pengukuran dimensi yang diperoleh kemudian distabilkan menggunakan algoritma pelacakan BoT-SORT dan filter temporal CDKF sebelum dikirimkan melalui REST API.}
+    \label{fig:pipeline_diagram}
+\end{figure}
 
 Akhirnya, untuk meningkatkan ketahanan sistem terhadap fluktuasi temporal, ukuran lubang yang diperkirakan pada frame-frame berturut-turut diproses menggunakan Confidence-and-Distance Kalman Filter (CDKF). Filter ini mengintegrasikan tingkat kepercayaan deteksi serta jarak objek terhadap kamera sebagai komponen ketidakpastian dalam pemodelan, sehingga menghasilkan estimasi dimensi lubang jalan yang lebih stabil, konsisten, dan dapat diandalkan dari waktu ke waktu.
 
 
 \subsection{Pengumpulan dan Anotasi Dataset}
 
-Gambar 2
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{images/dataset_collage.png}
+    \caption{Representasi visual dataset yang heterogen. Baris atas: Sampel dari dataset publik (Roboflow) yang mencakup berbagai kondisi pencahayaan. Baris bawah: Data uji lokal yang diambil menggunakan kamera \textit{dashcam} dan ponsel di lingkungan operasional nyata.}
+    \label{fig:dataset_collage}
+\end{figure}
 Penelitian ini menggunakan kombinasi dataset publik dan data lokal untuk memperoleh keragaman visual yang dibutuhkan dalam proses pelatihan model deteksi lubang jalan. Dataset publik utama diperoleh dari platform Roboflow Universe, yang menyediakan kumpulan dataset \textit{instance segmentation} lubang jalan dari berbagai kontributor global. Keragaman sumber data ini menghasilkan variasi signifikan pada tekstur jalan, kondisi pencahayaan, sudut pengambilan gambar, serta tingkat keparahan kerusakan, sehingga mendukung peningkatan kemampuan generalisasi model.
 
 Untuk memastikan sistem tetap adaptif terhadap karakteristik lingkungan lokal, dataset publik tersebut dilengkapi dengan data tambahan yang direkam menggunakan kamera \textit{dashcam} dan kamera telepon seluler pada kondisi nyata di lapangan. Pengambilan data dilakukan pada berbagai jenis permukaan jalan, variasi cuaca, serta intensitas lalu lintas yang berbeda, sehingga mencerminkan kondisi jalan Indonesia yang heterogen.

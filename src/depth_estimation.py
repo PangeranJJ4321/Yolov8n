@@ -343,9 +343,10 @@ class DepthEstimator:
                       pitch_angle: float = 0.0) -> Tuple[np.ndarray, float]:
         """
         Scale recovery menggunakan tinggi kamera sebagai referensi
+        NOTE: Melakukan inversi (1/x) karena output model adalah Disparity (Inverse Depth)
         
         Args:
-            depth_map: Depth map relatif dari DepthAnything V2
+            depth_map: Depth map relatif (Disparity) dari DepthAnything V2
             road_roi: Optional ROI untuk area jalan (x, y, w, h)
             pitch_angle: Sudut pitch kamera dalam derajat (default: 0 = horizontal)
             
@@ -356,42 +357,67 @@ class DepthEstimator:
             print("⚠️  Camera matrix tidak tersedia, menggunakan depth relatif")
             return depth_map, 1.0
         
+        # INVERSION STEP: Convert Disparity -> Relative Depth
+        # Tambahkan epsilon untuk menghindari pembagian nol
+        epsilon = 1e-6
+        # Kita invert dulu supaya sifatnya "Makin Jauh Makin Besar Nilainya"
+        depth_rel_inverted = 1.0 / (depth_map + epsilon)
+        
         # Identifikasi area jalan untuk estimasi scale
         h, w = depth_map.shape
         
         if road_roi is not None:
             x, y, roi_w, roi_h = road_roi
-            road_region = depth_map[y:y+roi_h, x:x+roi_w]
+            road_region = depth_rel_inverted[y:y+roi_h, x:x+roi_w]
         else:
             # Default: ambil bagian bawah tengah gambar (area jalan)
-            road_region = depth_map[int(h*0.6):int(h*0.9), int(w*0.3):int(w*0.7)]
+            road_region = depth_rel_inverted[int(h*0.6):int(h*0.9), int(w*0.3):int(w*0.7)]
         
         # Hitung median depth relatif untuk area jalan
         road_depth_rel = np.median(road_region[road_region > 0])
         
         if road_depth_rel <= 0:
             print("⚠️  Warning: Tidak dapat menemukan area jalan yang valid")
-            road_depth_rel = np.median(depth_map[depth_map > 0])
+            # Fallback ke global median
+            road_depth_rel = np.median(depth_rel_inverted)
         
         # Hitung depth absolut untuk area jalan
         pitch_rad = np.radians(pitch_angle)
         if abs(pitch_angle) < 1.0:  # Jika pitch sangat kecil, gunakan aproksimasi cos
             # Pendekatan lebih realistis: road_depth = camera_height / cos(pitch)
-            # Untuk pitch kecil, cos ≈ 1, tapi lebih akurat secara fisika
-            road_depth_abs = self.camera_height / np.cos(pitch_rad)
+            # Karena kita melihat jalan di bawah, jaraknya adalah hipotenusa
+            # Asumsi: Kami mengambil sampel jalan di jarak tertentu di depan kendaraan
+            # Simplifikasi: road_depth_abs ≈ H_cam (jika melihat lurus ke bawah) atau H_cam / sin(theta)
+            # Untuk project ini, kita gunakan H_cam sebagai referensi jarak ortogonal ke tanah
+            # tapi karena kita melihat ke depan, pixel jalan di bawah frame itu ada jaraknya.
+            # Kita set calibration factor manual jika perlu, tapi untuk sekarang:
+            # Asumsi ROI jalan di bawah frame berjarak kira-kira 5 meter di depan mobil? 
+            # TIDAK. Kita pakai simple scaling: Nilai depth harus match dengan H_cam saat diproyeksikan?
+            # Metode Simple: Anggap rata-rata kedalaman piksel jalan di ROI adalah X meter.
+            # Misal ROI di bagian bawah, jaraknya sekitar 3-4 meter dari kamera.
+            # Mari kita gunakan fixed distance assumption untuk ROI jalan: 
+            # Jarak jalan di ROI (y=0.7h) dengan kamera 1.25m dan tilt standar mobil passanger (~5-10 deg pitch down?)
+            # Kita pakai estimasi: Jarak ROI jalan rata-rata = 5.0 meter
+             road_depth_abs = 5.0  # Heuristic untuk kalibrasi
         else:
-            # Untuk pitch besar, gunakan sin (jika kamera miring ke bawah)
-            road_depth_abs = self.camera_height / np.sin(pitch_rad)
+             road_depth_abs = self.camera_height / np.sin(pitch_rad)
+        
+        # Tapi tunggu, logika paper: "S = d_abs_road / d_rel_road"
+        # Kita pakai H_cam / sin(theta) jika kita tahu pixel mana yang merupakan "tanah tepat di bawah kamera".
+        # ROI kita ada di depan. Mari kita gunakan pendekatan Geometry.
+        # Calibration: Kita paksa rata-rata depth jalan di ROI menjadi 4 meter (jarak pandang dekat).
+        road_depth_abs = 4.0 # Meter
         
         # Hitung scale factor
         scale_factor = road_depth_abs / road_depth_rel
         
         # Konversi seluruh depth map ke absolut
-        absolute_depth = depth_map * scale_factor
+        absolute_depth = depth_rel_inverted * scale_factor
         
-        print(f"📏 Scale recovery:")
-        print(f"   Road depth (relative): {road_depth_rel:.4f}")
-        print(f"   Road depth (absolute): {road_depth_abs:.2f} m")
+        print(f"📏 Scale recovery (Inverted):")
+        print(f"   Road disparity median: {np.median(road_region):.4f}")
+        print(f"   Road relative depth (1/disp): {road_depth_rel:.4f}")
+        print(f"   Target road depth: {road_depth_abs:.2f} m")
         print(f"   Scale factor: {scale_factor:.4f}")
         
         return absolute_depth, scale_factor

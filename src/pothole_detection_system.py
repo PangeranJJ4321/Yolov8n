@@ -245,8 +245,8 @@ class PotholeDetectionSystem:
         if len(filtered_depths) == 0:
             return np.nan
         
-        # Use percentile 10% (bagian terdalam)
-        z_base = np.percentile(filtered_depths, 10)
+        # Use percentile 90% (bagian terdalam/terjauh)
+        z_base = np.percentile(filtered_depths, 90)
         return float(z_base)
     
     def _calculate_diameter(self,
@@ -376,7 +376,12 @@ class PotholeDetectionSystem:
                 diameter_cm = self._calculate_diameter(bbox, z_avg, use_mask=False)
             
             # Calculate depth (cm)
-            depth_cm = (z_surface - z_base) * 100
+            # Gunakan Absolute Difference karena noise bisa membuat Surface dianggap lebih jauh/dekat
+            depth_cm = abs(z_base - z_surface) * 100
+            
+            # Clamp cleaning (optional, misal max 1 meter)
+            if depth_cm > 100:
+                print(f"⚠️  Warning: Anomalous depth detected: {depth_cm:.1f}cm (Frame {len(detections)})")
             
             # Skip jika diameter NaN (bbox terlalu kecil)
             if np.isnan(diameter_cm):
